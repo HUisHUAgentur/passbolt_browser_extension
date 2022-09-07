@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "__MSG_appName__",
-  "short_name": "passbolt",
+  "short_name": "hu_passbolt",
   "version": "3.7.1",
   "description": "__MSG_appDescription__",
   "default_locale": "en",
