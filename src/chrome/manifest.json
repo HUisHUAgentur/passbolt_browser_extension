@@ -21,7 +21,7 @@
         "dark": "webAccessibleResources/img/icons/icon-32.png",
         "size": 32
     }],
-    "default_title": "Passbolt Quickaccess",
+    "default_title": "HUisHU Passbolt Quickaccess",
     "default_popup": "webAccessibleResources/quickaccess.html?passbolt=quickaccess"
   },
   "commands": {
@@ -30,7 +30,7 @@
         "default": "Alt+Shift+P",
         "mac": "Alt+Shift+P"
       },
-      "description": "Open passbolt in a new tab!"
+      "description": "Öffnet Passbolt in einem neuen Tab!"
     }
   },
   "permissions": [
