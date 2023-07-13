@@ -11,13 +11,13 @@
  * @link          https://www.passbolt.com Passbolt(tm)
  * @since         2.8.0
  */
-const {Keyring} = require('../../model/keyring');
-const {Share} = require('../../model/share');
-const {ResourceModel} = require('../../model/resource/resourceModel');
-const passphraseController = require('../passphrase/passphraseController');
-const progressController = require('../progress/progressController');
-const {i18n} = require('../../sdk/i18n');
-const {GetDecryptedUserPrivateKeyService} = require('../../service/account/getDecryptedUserPrivateKeyService');
+import Keyring from "../../model/keyring";
+import ResourceModel from "../../model/resource/resourceModel";
+import {PassphraseController as passphraseController} from "../passphrase/passphraseController";
+import GetDecryptedUserPrivateKeyService from "../../service/account/getDecryptedUserPrivateKeyService";
+import Share from "../../model/share";
+import i18n from "../../sdk/i18n";
+import ProgressService from "../../service/progress/progressService";
 
 class ShareResourcesController {
   /**
@@ -32,6 +32,7 @@ class ShareResourcesController {
     this.requestId = requestId;
     this.clientOptions = clientOptions;
     this.resourceModel = new ResourceModel(clientOptions);
+    this.progressService = new ProgressService(this.worker);
   }
 
   /**
@@ -44,7 +45,6 @@ class ShareResourcesController {
   async main(resources, changes) {
     const keyring = new Keyring();
 
-    let progress = 0;
     let privateKey;
 
     /*
@@ -63,27 +63,24 @@ class ShareResourcesController {
     }
 
     try {
-      let msg = `Share ${resources.length} passwords`;
-      if (resources.length === 1) {
-        msg  = `Share one password`;
-      }
-      await progressController.open(this.worker, msg, progressGoal, i18n.t('Initialize'));
-      await progressController.update(this.worker, progress++, i18n.t('Synchronizing keys'));
+      this.progressService.title = i18n.t("Share {{count}} password", {count: resources.length});
+      this.progressService.start(progressGoal, i18n.t('Initialize'));
+      await this.progressService.finishStep(i18n.t('Synchronizing keys'), true);
       await keyring.sync();
       await Share.bulkShareResources(resources, changes, privateKey, async message => {
-        await progressController.update(this.worker, progress++, message);
+        await this.progressService.finishStep(message);
       });
       await this.resourceModel.updateLocalStorage();
       const results = resources.map(resource => resource.id);
-      await progressController.update(this.worker, progressGoal, i18n.t('Done!'));
-      await progressController.close(this.worker);
+      await this.progressService.finishStep(i18n.t('Done!'), true);
+      await this.progressService.close();
       return results;
     } catch (error) {
       console.error(error);
-      await progressController.close(this.worker);
+      await this.progressService.close();
       throw error;
     }
   }
 }
 
-exports.ShareResourcesController = ShareResourcesController;
+export default ShareResourcesController;

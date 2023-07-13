@@ -10,8 +10,8 @@
  * @license       https://opensource.org/licenses/AGPL-3.0 AGPL License
  * @link          https://www.passbolt.com Passbolt(tm)
  */
-const {AbstractCsvRowParser} = require("./abstractCsvRowParser");
-const {ExternalResourceEntity} = require("../../../entity/resource/external/externalResourceEntity");
+import ExternalResourceEntity from "../../../entity/resource/external/externalResourceEntity";
+import AbstractCsvRowParser from "./abstractCsvRowParser";
 
 class CsvLastPassRowParser extends AbstractCsvRowParser {
   /**
@@ -20,12 +20,14 @@ class CsvLastPassRowParser extends AbstractCsvRowParser {
    */
   static get mapping() {
     return {
-      "name": "name",
-      "username": "username",
       "uri": "url",
+      "username": "username",
       "secret_clear": "password",
+      "totp": "totp",
       "description": "extra",
-      "folder_parent_path": "grouping"
+      "name": "name",
+      "folder_parent_path": "grouping",
+      "fav": "fav"
     };
   }
 
@@ -62,4 +64,4 @@ class CsvLastPassRowParser extends AbstractCsvRowParser {
   }
 }
 
-exports.CsvLastPassRowParser = CsvLastPassRowParser;
+export default CsvLastPassRowParser;

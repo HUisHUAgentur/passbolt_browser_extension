@@ -11,8 +11,11 @@
  * @link          https://www.passbolt.com Passbolt(tm)
  * @since         3.6.0
  */
-
-const {AuthModel} = require("../../model/auth/authModel");
+import browser from "../../sdk/polyfill/browserPolyfill";
+import AuthModel from "../../model/auth/authModel";
+import CheckPassphraseService from "../../service/crypto/checkPassphraseService";
+import Keyring from "../../model/keyring";
+import UpdateSsoCredentialsService from "../../service/account/updateSsoCredentialsService";
 
 class SignInSetupController {
   /**
@@ -29,6 +32,8 @@ class SignInSetupController {
     this.account = account;
     this.authModel = new AuthModel(apiClientOptions);
     this.runtimeMemory = runtimeMemory;
+    this.updateSsoCredentialsService = new UpdateSsoCredentialsService(apiClientOptions);
+    this.checkPassphraseService = new CheckPassphraseService(new Keyring());
   }
 
   /**
@@ -60,6 +65,10 @@ class SignInSetupController {
     if (typeof rememberMe !== "undefined" && typeof rememberMe !== "boolean") {
       throw new Error("The rememberMe should be a boolean.");
     }
+
+    await this.checkPassphraseService.checkPassphrase(this.runtimeMemory.passphrase);
+    await this.updateSsoCredentialsService.forceUpdateSsoKit(this.runtimeMemory.passphrase);
+
     await this.authModel.login(this.runtimeMemory.passphrase, rememberMe);
     await this.redirectToApp();
   }
@@ -74,4 +83,4 @@ class SignInSetupController {
   }
 }
 
-exports.SignInSetupController = SignInSetupController;
+export default SignInSetupController;

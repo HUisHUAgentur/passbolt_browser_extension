@@ -11,12 +11,12 @@
  * @link          https://www.passbolt.com Passbolt(tm)
  * @since         3.0.0
  */
-const {Log} = require('../../model/log');
-const Lock = require('../../utils/lock').Lock;
+import browser from "../../sdk/polyfill/browserPolyfill";
+import Log from "../../model/log";
+import RoleEntity from "passbolt-styleguide/src/shared/models/entity/role/roleEntity";
+import RolesCollection from "passbolt-styleguide/src/shared/models/entity/role/rolesCollection";
+import Lock from "../../utils/lock";
 const lock = new Lock();
-
-const {RoleEntity} = require('../../model/entity/role/roleEntity');
-const {RolesCollection} = require("../../model/entity/role/rolesCollection");
 
 const ROLES_LOCAL_STORAGE_KEY = 'roles';
 
@@ -117,19 +117,6 @@ class RolesLocalStorage {
       throw new TypeError('RolesLocalStorage expects RoleEntity id to be set');
     }
   }
-
-  /**
-   * Init resource local storage
-   */
-  static init() {
-    // Flush the local storage when this library is loaded
-    this.flush();
-
-    // Flush the local storage when the passbolt user session is terminated
-    window.addEventListener("passbolt.auth.after-logout", () => {
-      this.flush();
-    });
-  }
 }
 
-exports.RolesLocalStorage = RolesLocalStorage;
+export default RolesLocalStorage;

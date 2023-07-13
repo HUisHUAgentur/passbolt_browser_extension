@@ -11,11 +11,12 @@
  * @link          https://www.passbolt.com Passbolt(tm)
  * @since         3.6.0
  */
-const {Entity} = require('../abstract/entity');
-const {EntitySchema} = require('../abstract/entitySchema');
-const {EntityValidationError} = require('../abstract/entityValidationError');
-const {AccountRecoveryOrganizationPolicyEntity} = require("./accountRecoveryOrganizationPolicyEntity");
-const {AccountRecoveryOrganizationPublicKeyEntity} = require("./accountRecoveryOrganizationPublicKeyEntity");
+import Entity from "passbolt-styleguide/src/shared/models/entity/abstract/entity";
+import EntitySchema from "passbolt-styleguide/src/shared/models/entity/abstract/entitySchema";
+import EntityValidationError from "passbolt-styleguide/src/shared/models/entity/abstract/entityValidationError";
+import AccountRecoveryOrganizationPolicyEntity from "./accountRecoveryOrganizationPolicyEntity";
+import AccountRecoveryOrganizationPublicKeyEntity from "./accountRecoveryOrganizationPublicKeyEntity";
+
 const ENTITY_NAME = "AccountRecoveryOrganizationChangePolicy";
 
 /**
@@ -155,4 +156,4 @@ class AccountRecoveryOrganizationPolicyChangeEntity extends Entity {
   }
 }
 
-exports.AccountRecoveryOrganizationPolicyChangeEntity = AccountRecoveryOrganizationPolicyChangeEntity;
+export default AccountRecoveryOrganizationPolicyChangeEntity;

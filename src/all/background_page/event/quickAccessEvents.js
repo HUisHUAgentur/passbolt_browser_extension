@@ -4,14 +4,17 @@
  * @copyright (c) 2019 Passbolt SA
  * @licence GNU Affero General Public License http://www.gnu.org/licenses/agpl-3.0.en.html
  */
-const {i18n} = require('../sdk/i18n');
-const Worker = require('../model/worker');
-const {BrowserTabService} = require("../service/ui/browserTab.service");
-const {ResourceInProgressCacheService} = require("../service/cache/resourceInProgressCache.service");
-const {User} = require('../model/user');
-const {SecretDecryptController} = require('../controller/secret/secretDecryptController');
+import browser from "../sdk/polyfill/browserPolyfill";
+import User from "../model/user";
+import BrowserTabService from "../service/ui/browserTab.service";
+import SecretDecryptController from "../controller/secret/secretDecryptController";
+import ResourceInProgressCacheService from "../service/cache/resourceInProgressCache.service";
+import i18n from "../sdk/i18n";
+import WorkerService from "../service/worker/workerService";
+import FindMeController from "../controller/rbac/findMeController";
+import GetOrFindLoggedInUserController from "../controller/user/getOrFindLoggedInUserController";
 
-const listen = function(worker) {
+const listen = function(worker, account) {
   /*
    * Use a resource on the current tab.
    *
@@ -50,7 +53,7 @@ const listen = function(worker) {
       }
 
       // Current active tab's url is passing to quick access to check the same origin request
-      const webIntegrationWorker = await Worker.get('WebIntegration', tab.id);
+      const webIntegrationWorker = await WorkerService.get('WebIntegration', tab.id);
       await webIntegrationWorker.port.request('passbolt.quickaccess.fill-form', username, password, tab.url);
       worker.port.emit(requestId, 'SUCCESS');
     } catch (error) {
@@ -68,7 +71,7 @@ const listen = function(worker) {
    */
   worker.port.on('passbolt.quickaccess.prepare-resource', async(requestId, tabId) => {
     try {
-      const resourceInProgress = ResourceInProgressCacheService.consume();
+      const resourceInProgress = await ResourceInProgressCacheService.consume();
       if (resourceInProgress === null) {
         // Retrieve resource name and uri from tab.
         const tab = tabId ? await BrowserTabService.getById(tabId) : await BrowserTabService.getCurrent();
@@ -92,7 +95,7 @@ const listen = function(worker) {
    */
   worker.port.on('passbolt.quickaccess.prepare-autosave', async requestId => {
     try {
-      const resourceInProgress = ResourceInProgressCacheService.consume() || {};
+      const resourceInProgress = await ResourceInProgressCacheService.consume() || {};
       worker.port.emit(requestId, 'SUCCESS', resourceInProgress);
     } catch (error) {
       console.error(error);
@@ -114,6 +117,31 @@ const listen = function(worker) {
       console.error(error);
     }
   });
+
+  /*
+   * Find the logged in user
+   *
+   * @listens passbolt.users.find-logged-in-user
+   * @param requestId {uuid} The request identifier
+   * @param refreshCache {bool} (Optional) Default false. Should request the API and refresh the cache.
+   */
+  worker.port.on('passbolt.users.find-logged-in-user', async(requestId, refreshCache = false) => {
+    const apiClientOptions = await User.getInstance().getApiClientOptions();
+    const controller = new GetOrFindLoggedInUserController(worker, requestId, apiClientOptions, account);
+    await controller._exec(refreshCache);
+  });
+
+  /*
+   * ==================================================================================
+   *  Role based control action
+   * ==================================================================================
+   */
+
+  worker.port.on('passbolt.rbacs.find-me', async(requestId, name) => {
+    const apiClientOptions = await User.getInstance().getApiClientOptions();
+    const controller = new FindMeController(worker, requestId, apiClientOptions, account);
+    await controller._exec(name);
+  });
 };
 
-exports.listen = listen;
+export const QuickAccessEvents = {listen};

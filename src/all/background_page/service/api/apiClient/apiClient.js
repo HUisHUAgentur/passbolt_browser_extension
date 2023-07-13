@@ -11,10 +11,13 @@
  * @link          https://www.passbolt.com Passbolt(tm)
  * @since         2.13.0
  */
-const {PassboltApiFetchError} = require('../../../error/passboltApiFetchError');
-const {PassboltBadResponseError} = require('../../../error/passboltBadResponseError');
-const {PassboltServiceUnavailableError} = require('../../../error/passboltServiceUnavailableError');
+import PassboltBadResponseError from "../../../error/passboltBadResponseError";
+import PassboltApiFetchError from "../../../error/passboltApiFetchError";
+import PassboltServiceUnavailableError from "../../../error/passboltServiceUnavailableError";
 
+/**
+ * @deprecated since v4.1.0. ApiClient was moved to the styleguide project.
+ */
 class ApiClient {
   /**
    * Constructor
@@ -36,7 +39,14 @@ class ApiClient {
       if (rawBaseUrl.endsWith('/')) {
         rawBaseUrl = rawBaseUrl.slice(0, -1);
       }
-      this.baseUrl = `${rawBaseUrl}/${this.options.getResourceName()}`;
+      let resourceName = this.options.getResourceName();
+      if (resourceName.startsWith('/')) {
+        resourceName = resourceName.slice(1);
+      }
+      if (resourceName.endsWith('/')) {
+        resourceName = resourceName.slice(0, -1);
+      }
+      this.baseUrl = `${rawBaseUrl}/${resourceName}`;
       this.baseUrl = new URL(this.baseUrl);
     } catch (typeError) {
       throw new TypeError('ApiClient constructor error: b.');
@@ -289,6 +299,37 @@ class ApiClient {
   }
 
   /**
+   * Send a request to the API without handling the response
+   *
+   * @param {string} method example 'GET', 'POST'
+   * @param {URL} url object
+   * @param {*} [body] (optional)
+   * @param {Object} [options] (optional) more fetch options
+   * @throws {PassboltServiceUnavailableError} if service is not reachable
+   * @returns {Promise<*>}
+   * @public
+   */
+  async sendRequest(method, url, body, options) {
+    this.assertUrl(url);
+    this.assertMethod(method);
+    if (body) {
+      this.assertBody(body);
+    }
+
+    const fetchOptions = {...this.buildFetchOptions(), ...options};
+    fetchOptions.method = method;
+    if (body) {
+      fetchOptions.body = body;
+    }
+    try {
+      return await fetch(url.toString(), fetchOptions);
+    } catch (error) {
+      // Catch Network error such as connection lost.
+      throw new PassboltServiceUnavailableError(error.message);
+    }
+  }
+
+  /**
    * fetchAndHandleResponse
    *
    * @param {string} method example 'GET', 'POST'
@@ -303,24 +344,8 @@ class ApiClient {
    * @public
    */
   async fetchAndHandleResponse(method, url, body, options) {
-    this.assertUrl(url);
-    this.assertMethod(method);
-    if (body) {
-      this.assertBody(body);
-    }
-
-    let response, responseJson;
-    const fetchOptions = {...this.buildFetchOptions(), ...options};
-    fetchOptions.method = method;
-    if (body) {
-      fetchOptions.body = body;
-    }
-    try {
-      response = await fetch(url.toString(), fetchOptions);
-    } catch (error) {
-      // Catch Network error such as connection lost.
-      throw new PassboltServiceUnavailableError(error.message);
-    }
+    let responseJson;
+    const response = await this.sendRequest(method, url, body, options);
 
     try {
       responseJson = await response.json();
@@ -345,4 +370,4 @@ class ApiClient {
   }
 }
 
-exports.ApiClient = ApiClient;
+export default ApiClient;

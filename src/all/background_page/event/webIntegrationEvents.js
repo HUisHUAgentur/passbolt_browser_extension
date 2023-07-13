@@ -10,7 +10,8 @@
  * @license       https://opensource.org/licenses/AGPL-3.0 AGPL License
  * @link          https://www.passbolt.com Passbolt(tm)
  */
-const {WebIntegrationController} = require("../controller/webIntegration/webIntegrationController");
+import WebIntegrationController from "../controller/webIntegration/webIntegrationController";
+import RemovePortController from "../controller/port/removePortController";
 
 /**
  * Listens the web integration events
@@ -26,6 +27,12 @@ const listen = function(worker) {
     const webIntegrationController = new WebIntegrationController(worker);
     await webIntegrationController.autosave(resourceToSave);
   });
+
+  /** Whenever the in-form-menu or in-call-to-action are removed */
+  worker.port.on('passbolt.port.disconnect', async applicationName => {
+    const removePortController = new RemovePortController(worker);
+    await removePortController._exec(applicationName);
+  });
 };
 
-exports.listen = listen;
+export const WebIntegrationEvents = {listen};

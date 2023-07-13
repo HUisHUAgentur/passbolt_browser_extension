@@ -11,12 +11,12 @@
  * @link          https://www.passbolt.com Passbolt(tm)
  * @since         2.11.0
  */
-const {Log} = require('../../model/log');
-const Lock = require('../../utils/lock').Lock;
+import browser from "../../sdk/polyfill/browserPolyfill";
+import Log from "../../model/log";
+import ResourcesCollection from "../../model/entity/resource/resourcesCollection";
+import ResourceEntity from "../../model/entity/resource/resourceEntity";
+import Lock from "../../utils/lock";
 const lock = new Lock();
-
-const {ResourceEntity} = require('../../model/entity/resource/resourceEntity');
-const {ResourcesCollection} = require("../../model/entity/resource/resourcesCollection");
 
 const RESOURCES_LOCAL_STORAGE_KEY = 'resources';
 
@@ -139,6 +139,31 @@ class ResourceLocalStorage {
   }
 
   /**
+   * Update a resource collection in the local storage.
+   * @param {ResourcesCollection} resourcesCollection The resources to update
+   * @throws {Error} if the resource does not exist in the local storage
+   */
+  static async updateResourcesCollection(resourcesCollection) {
+    await lock.acquire();
+    try {
+      const resources = await ResourceLocalStorage.get();
+      for (const resourceEntity of resourcesCollection) {
+        ResourceLocalStorage.assertEntityBeforeSave(resourceEntity);
+        const resourceIndex = resources.findIndex(item => item.id === resourceEntity.id);
+        if (resourceIndex === -1) {
+          throw new Error('The resource could not be found in the local storage');
+        }
+        resources[resourceIndex] = resourceEntity.toDto(ResourceLocalStorage.DEFAULT_CONTAIN);
+      }
+      await browser.storage.local.set({resources: resources});
+      lock.release();
+    } catch (error) {
+      lock.release();
+      throw error;
+    }
+  }
+
+  /**
    * Delete a resource in the local storage by id.
    * @param {string} resourceId The resource id
    */
@@ -222,19 +247,6 @@ class ResourceLocalStorage {
       throw error;
     }
   }
-
-  /**
-   * Init resource local storage
-   */
-  static init() {
-    // Flush the local storage when this library is loaded
-    this.flush();
-
-    // Flush the local storage when the passbolt user session is terminated
-    window.addEventListener("passbolt.auth.after-logout", () => {
-      this.flush();
-    });
-  }
 }
 
-exports.ResourceLocalStorage = ResourceLocalStorage;
+export default ResourceLocalStorage;

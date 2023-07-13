@@ -12,8 +12,10 @@
  * @since         3.6.0
  */
 
-const {InvalidMasterPasswordError} = require("../../error/invalidMasterPasswordError");
-const {assertEncryptedPrivateKey} = require("../../utils/openpgp/openpgpAssertions");
+import * as openpgp from 'openpgp';
+import {OpenpgpAssertion} from "../../utils/openpgp/openpgpAssertions";
+import InvalidMasterPasswordError from "../../error/invalidMasterPasswordError";
+import {assertPassphrase} from '../../utils/assertions';
 
 class DecryptPrivateKeyService {
   /**
@@ -26,7 +28,8 @@ class DecryptPrivateKeyService {
    * @throws {Error} If the private key is already decrypted.
    */
   static async decrypt(privateKey, passphrase) {
-    assertEncryptedPrivateKey(privateKey);
+    OpenpgpAssertion.assertEncryptedPrivateKey(privateKey);
+    assertPassphrase(passphrase);
 
     try {
       return (await openpgp.decryptKey({
@@ -39,4 +42,4 @@ class DecryptPrivateKeyService {
   }
 }
 
-exports.DecryptPrivateKeyService = DecryptPrivateKeyService;
+export default DecryptPrivateKeyService;

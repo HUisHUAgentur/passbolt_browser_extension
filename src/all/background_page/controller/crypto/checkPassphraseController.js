@@ -11,10 +11,8 @@
  * @link          https://www.passbolt.com Passbolt(tm)
  * @since         3.6.0
  */
-
-const {Keyring} = require('../../model/keyring');
-const {DecryptPrivateKeyService} = require('../../service/crypto/decryptPrivateKeyService');
-const {readKeyOrFail} = require('../../utils/openpgp/openpgpAssertions');
+import Keyring from "../../model/keyring";
+import CheckPassphraseService from "../../service/crypto/checkPassphraseService";
 
 class CheckPassphraseController {
   /**
@@ -28,6 +26,7 @@ class CheckPassphraseController {
     this.worker = worker;
     this.requestId = requestId;
     this.keyring = new Keyring();
+    this.checkPassphraseService = new CheckPassphraseService(this.keyring);
   }
 
   /**
@@ -52,16 +51,11 @@ class CheckPassphraseController {
    * @param {string} passphrase The passphrase of the current user's key.
    * @returns {Promise<void>}
    * @throws {InvalidMasterPasswordError} if the passphrase can't decrypt the current user's key.
-   * @throws {Error} if no private key could be found.
+   * @throws {GpgKeyError} if no private key could be found.
    */
   async exec(passphrase) {
-    const privateKey = this.keyring.findPrivate();
-    if (!privateKey) {
-      throw new Error('Private key not found.');
-    }
-    const key = await readKeyOrFail(privateKey.armoredKey);
-    await DecryptPrivateKeyService.decrypt(key, passphrase);
+    await this.checkPassphraseService.checkPassphrase(passphrase);
   }
 }
 
-exports.CheckPassphraseController = CheckPassphraseController;
+export default CheckPassphraseController;

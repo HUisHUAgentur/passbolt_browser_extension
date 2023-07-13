@@ -10,16 +10,17 @@
  * @license       https://opensource.org/licenses/AGPL-3.0 AGPL License
  * @link          https://www.passbolt.com Passbolt(tm)
  */
-const app = require("../../app");
-const {GpgAuthHeader} = require("../gpgAuthHeader");
-const {GpgAuthToken} = require("../gpgAuthToken");
-const {AuthStatusLocalStorage} = require("../../service/local_storage/authStatusLocalStorage");
-const {GpgAuth} = require("../gpgauth");
-const {AuthService} = require("../../service/api/auth/authService");
-const {User} = require("../user");
-const {EncryptMessageService} = require("../../service/crypto/encryptMessageService");
-const {GetDecryptedUserPrivateKeyService} = require("../../service/account/getDecryptedUserPrivateKeyService");
-const {readKeyOrFail} = require("../../utils/openpgp/openpgpAssertions");
+import {OpenpgpAssertion} from "../../utils/openpgp/openpgpAssertions";
+import EncryptMessageService from "../../service/crypto/encryptMessageService";
+import GpgAuth from "../gpgauth";
+import AuthService from 'passbolt-styleguide/src/shared/services/api/auth/AuthService';
+import AuthStatusLocalStorage from "../../service/local_storage/authStatusLocalStorage";
+import User from "../user";
+import GetDecryptedUserPrivateKeyService from "../../service/account/getDecryptedUserPrivateKeyService";
+import GpgAuthToken from "../gpgAuthToken";
+import GpgAuthHeader from "../gpgAuthHeader";
+import PassphraseStorageService from "../../service/session_storage/passphraseStorageService";
+import StartLoopAuthSessionCheckService from "../../service/auth/startLoopAuthSessionCheckService";
 
 class AuthModel {
   /**
@@ -51,7 +52,7 @@ class AuthModel {
     const isMfaRequired = false;
     await AuthStatusLocalStorage.set(isAuthenticated, isMfaRequired);
     const event = new Event('passbolt.auth.after-logout');
-    window.dispatchEvent(event);
+    self.dispatchEvent(event);
   }
 
   /**
@@ -80,7 +81,7 @@ class AuthModel {
      * MFA may not be complete yet, so no need to preload things here
      */
     if (rememberUntilLogout) {
-      user.storeMasterPasswordTemporarily(passphrase, -1);
+      await PassphraseStorageService.set(passphrase, -1);
     }
     await this.postLogin();
   }
@@ -90,10 +91,10 @@ class AuthModel {
    * @returns {Promise<void>}
    */
   async postLogin() {
-    await this.legacyAuthModel.startCheckAuthStatusLoop();
-    await app.pageMods.AppBoostrap.init();
+    const startLoopAuthSessionCheckService = new StartLoopAuthSessionCheckService(this.legacyAuthModel);
+    await startLoopAuthSessionCheckService.exec();
     const event = new Event('passbolt.auth.after-login');
-    window.dispatchEvent(event);
+    self.dispatchEvent(event);
   }
 
   /**
@@ -109,7 +110,7 @@ class AuthModel {
     let encryptedToken, originalToken;
     try {
       originalToken = new GpgAuthToken();
-      const serverKey = await readKeyOrFail(serverArmoredKey);
+      const serverKey = await OpenpgpAssertion.readKeyOrFail(serverArmoredKey);
       encryptedToken = await EncryptMessageService.encrypt(originalToken.token, serverKey);
     } catch (error) {
       throw new Error(`Unable to encrypt the verify token. ${error.message}`);
@@ -126,4 +127,4 @@ class AuthModel {
   }
 }
 
-exports.AuthModel = AuthModel;
+export default AuthModel;

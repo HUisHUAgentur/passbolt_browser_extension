@@ -13,9 +13,9 @@
  */
 
 import each from "jest-each";
-import {EntitySchema} from "../abstract/entitySchema";
-import {EntityValidationError} from "../abstract/entityValidationError";
-import {AccountRecoveryOrganizationPolicyEntity} from "./accountRecoveryOrganizationPolicyEntity";
+import EntitySchema from "passbolt-styleguide/src/shared/models/entity/abstract/entitySchema";
+import EntityValidationError from "passbolt-styleguide/src/shared/models/entity/abstract/entityValidationError";
+import AccountRecoveryOrganizationPolicyEntity from "./accountRecoveryOrganizationPolicyEntity";
 import {
   createDisabledAccountRecoveryOrganizationPolicyDto,
   createDisabledPreviouslyEnabledAccountRecoveryOrganizationPolicyDto,
@@ -25,7 +25,7 @@ import {
   disabledPreviouslyEnabledAccountRecoveryOrganizationPolicyDto,
   enabledAccountRecoveryOrganizationPolicyDto, rotateKeyAccountRecoveryOrganizationPolicyDto
 } from "./accountRecoveryOrganizationPolicyEntity.test.data";
-import {users} from "../user/userEntity.test.data";
+import {users} from "passbolt-styleguide/src/shared/models/entity/user/userEntity.test.data";
 import {pgpKeys} from "../../../../../../test/fixtures/pgpKeys/keys";
 
 describe("AccountRecoveryOrganizationPolicy entity", () => {

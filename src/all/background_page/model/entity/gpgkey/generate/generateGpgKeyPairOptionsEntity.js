@@ -11,9 +11,9 @@
  * @link          https://www.passbolt.com Passbolt(tm)
  * @since         3.6.0
  */
-const {goog} = require('../../../../utils/format/emailaddress');
-const {Entity} = require('../../abstract/entity');
-const {EntitySchema} = require('../../abstract/entitySchema');
+import Entity from "passbolt-styleguide/src/shared/models/entity/abstract/entity";
+import EntitySchema from "passbolt-styleguide/src/shared/models/entity/abstract/entitySchema";
+import AppEmailValidatorService from "../../../../service/validator/appEmailValidatorService";
 
 const ENTITY_NAME = "GenerateGpgKeyPairOptionsEntity";
 
@@ -74,7 +74,7 @@ class GenerateGpgKeyPairOptionsEntity extends Entity {
         },
         "email": {
           "type": "string",
-          "custom": goog.format.EmailAddress.isValidAddress
+          "custom": AppEmailValidatorService.validate
         },
         "passphrase": {
           "type": "string",
@@ -215,4 +215,4 @@ class GenerateGpgKeyPairOptionsEntity extends Entity {
   }
 }
 
-exports.GenerateGpgKeyPairOptionsEntity = GenerateGpgKeyPairOptionsEntity;
+export default GenerateGpgKeyPairOptionsEntity;

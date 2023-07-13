@@ -11,9 +11,9 @@
  * @link          https://www.passbolt.com Passbolt(tm)
  * @since         2.13.0
  */
-const {EntityCollection} = require('../../abstract/entityCollection');
-const {EntitySchema} = require('../../abstract/entitySchema');
-const {NeededSecretEntity} = require("./neededSecretEntity");
+import EntityCollection from "passbolt-styleguide/src/shared/models/entity/abstract/entityCollection";
+import NeededSecretEntity from "./neededSecretEntity";
+import EntitySchema from "passbolt-styleguide/src/shared/models/entity/abstract/entitySchema";
 
 const ENTITY_NAME = 'NeededSecrets';
 
@@ -100,4 +100,4 @@ class NeededSecretsCollection extends EntityCollection {
   }
 }
 
-exports.NeededSecretsCollection = NeededSecretsCollection;
+export default NeededSecretsCollection;

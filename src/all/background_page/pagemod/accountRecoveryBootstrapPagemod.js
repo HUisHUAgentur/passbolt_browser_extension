@@ -1,60 +1,79 @@
 /**
  * Passbolt ~ Open source password manager for teams
- * Copyright (c) 2022 Passbolt SA (https://www.passbolt.com)
+ * Copyright (c) 2023 Passbolt SA (https://www.passbolt.com)
  *
  * Licensed under GNU Affero General Public License version 3 of the or any later version.
  * For full copyright and license information, please see the LICENSE.txt
  * Redistributions of files must retain the above copyright notice.
  *
- * @copyright     Copyright (c) 2022 Passbolt SA (https://www.passbolt.com)
+ * @copyright     Copyright (c) 2023 Passbolt SA (https://www.passbolt.com)
  * @license       https://opensource.org/licenses/AGPL-3.0 AGPL License
  * @link          https://www.passbolt.com Passbolt(tm)
- * @since         3.6.0
+ * @since         4.0.0
  */
+import Pagemod from "./pagemod";
+import {PortEvents} from "../event/portEvents";
+import ParseAccountRecoveryUrlService
+  from "../service/accountRecovery/parseAccountRecoveryUrlService";
 
-const {PageMod} = require('../sdk/page-mod');
-const Worker = require('../model/worker');
-const app = require('../app');
-const {GetRequestLocalAccountService} = require("../service/accountRecovery/getRequestLocalAccountService");
-
-const AccountRecoveryBootstrap = function() {};
-AccountRecoveryBootstrap._pageMod = undefined;
-
-AccountRecoveryBootstrap.init = function() {
-  if (typeof AccountRecoveryBootstrap._pageMod !== 'undefined') {
-    AccountRecoveryBootstrap._pageMod.destroy();
-    AccountRecoveryBootstrap._pageMod = undefined;
+class AccountRecoveryBootstrap extends Pagemod {
+  /**
+   * @inheritDoc
+   * @returns {string}
+   */
+  get appName() {
+    return "AccountRecoveryBootstrap";
   }
 
-  const uuidRegex = "[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[0-5][a-fA-F0-9]{3}-[089aAbB][a-fA-F0-9]{3}-[a-fA-F0-9]{12}";
-  const accountRecoveryBootstrapRegex = `(.*)\/account-recovery\/continue\/(${uuidRegex})\/(${uuidRegex})`;
+  /**
+   * @inheritDoc
+   */
+  get contentScriptFiles() {
+    return [
+      'contentScripts/js/dist/vendors.js',
+      'contentScripts/js/dist/account-recovery.js',
+    ];
+  }
 
-  AccountRecoveryBootstrap._pageMod = new PageMod({
-    name: 'AccountRecoveryBootstrap',
-    include: new RegExp(accountRecoveryBootstrapRegex),
-    contentScriptWhen: 'ready',
-    contentStyleFile: [],
-    contentScriptFile: [
-      'content_scripts/js/dist/vendors.js',
-      'content_scripts/js/dist/account-recovery.js',
-    ],
-    onAttach: async function(worker) {
-      try {
-        await GetRequestLocalAccountService.getAccountMatchingContinueUrl(worker.tab.url);
-      } catch (error) {
-        console.error(error);
-        worker.port.disconnect();
-        return;
-      }
+  /**
+   * @inheritDoc
+   */
+  get events() {
+    return [PortEvents];
+  }
 
-      Worker.add('AccountRecoveryBootstrap', worker);
-      /*
-       * Keep the pagemod event listeners at the end of the list, it answers to an event that allows
-       * the content code to know when the background page is ready.
-       */
-      app.events.pagemod.listen(worker);
-    }
-  });
-};
+  /**
+   * @inheritDoc
+   */
+  get mustReloadOnExtensionUpdate() {
+    return true;
+  }
 
-exports.AccountRecoveryBootstrap = AccountRecoveryBootstrap;
+  /**
+   * @inheritDoc
+   */
+  async canBeAttachedTo(frameDetails) {
+    return this.assertTopFrameAttachConstraint(frameDetails)
+      && this.assertUrlAttachConstraint(frameDetails);
+  }
+
+  /**
+   * Assert that the attached frame is a top frame.
+   * @param {Object} frameDetails
+   * @returns {boolean}
+   */
+  assertTopFrameAttachConstraint(frameDetails) {
+    return frameDetails.frameId === Pagemod.TOP_FRAME_ID;
+  }
+
+  /**
+   * Assert that the attached frame is a top frame.
+   * @param {Object} frameDetails
+   * @returns {boolean}
+   */
+  assertUrlAttachConstraint(frameDetails) {
+    return ParseAccountRecoveryUrlService.test(frameDetails.url);
+  }
+}
+
+export default new AccountRecoveryBootstrap();

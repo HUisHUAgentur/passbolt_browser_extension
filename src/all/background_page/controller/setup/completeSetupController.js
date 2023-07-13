@@ -12,11 +12,10 @@
  * @since         3.6.0
  */
 
-const app = require("../../app");
-const {SetupModel} = require("../../model/setup/setupModel");
-const {AccountModel} = require("../../model/account/accountModel");
-const {AccountEntity} = require("../../model/entity/account/accountEntity");
-const {AccountSetupEntity} = require("../../model/entity/account/accountSetupEntity");
+import AccountModel from "../../model/account/accountModel";
+import SetupModel from "../../model/setup/setupModel";
+import AccountEntity from "../../model/entity/account/accountEntity";
+import AccountSetupEntity from "../../model/entity/account/accountSetupEntity";
 
 class CompleteSetupController {
   /**
@@ -58,22 +57,7 @@ class CompleteSetupController {
     const accountSetup = new AccountEntity(this.account.toDto(AccountSetupEntity.ALL_CONTAIN_OPTIONS));
     await this.setupModel.completeSetup(this.account);
     await this.accountModel.add(accountSetup);
-    this.initPagemods();
-  }
-
-  /**
-   * If there was no account yet configured, the following pagemods were not instantiated a the extension bootstrap.
-   * @return {void}
-   */
-  initPagemods() {
-    if (!app.pageMods.WebIntegration._pageMod) {
-      app.pageMods.WebIntegration.init();
-    }
-    app.pageMods.AuthBootstrap.init();
-    if (!app.pageMods.PublicWebsiteSignIn._pageMod) {
-      app.pageMods.PublicWebsiteSignIn.init();
-    }
   }
 }
 
-exports.CompleteSetupController = CompleteSetupController;
+export default CompleteSetupController;

@@ -1,22 +1,28 @@
 /**
- * Clipboard events
+ * Passbolt ~ Open source password manager for teams
+ * Copyright (c) 2023 Passbolt SA (https://www.passbolt.com)
  *
- * @copyright (c) 2017 Passbolt SARL
- * @licence GNU Affero General Public License http://www.gnu.org/licenses/agpl-3.0.en.html
+ * Licensed under GNU Affero General Public License version 3 of the or any later version.
+ * For full copyright and license information, please see the LICENSE.txt
+ * Redistributions of files must retain the above copyright notice.
+ *
+ * @copyright     Copyright (c) 2023 Passbolt SA (https://www.passbolt.com)
+ * @license       https://opensource.org/licenses/AGPL-3.0 AGPL License
+ * @link          https://www.passbolt.com Passbolt(tm)
+ * @since         3.9.0
  */
-const Worker = require('../model/worker');
 
+import ClipboardController from '../controller/clipboard/clipboardController';
+
+/**
+ * Listens the clipboard events
+ * @param worker
+ */
 const listen = function(worker) {
-  /*
-   * Copy to clipoard.
-   *
-   * @listens passbolt.clipboard.copy
-   * @param txt {string} The string to copy to clipboard
-   */
-  worker.port.on('passbolt.clipboard.copy', (requestId, txt) => {
-    const clipboardWorker = Worker.get('ClipboardIframe', worker.tab.id);
-    clipboardWorker.port.emit('passbolt.clipboard-iframe.copy', txt);
-    worker.port.emit(requestId, 'SUCCESS');
+  worker.port.on('passbolt.clipboard.copy', async(requestId, text) => {
+    const clipboardController = new ClipboardController(worker, requestId, text);
+    await clipboardController._exec(text);
   });
 };
-exports.listen = listen;
+
+export const ClipboardEvents = {listen};

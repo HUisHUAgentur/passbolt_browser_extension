@@ -11,14 +11,15 @@
  * @link          https://www.passbolt.com Passbolt(tm)
  * @since         2.13.0
  */
-const {Entity} = require('../abstract/entity');
-const {EntitySchema} = require('../abstract/entitySchema');
-const {RoleEntity} = require('../role/roleEntity');
-const {ProfileEntity} = require('../profile/profileEntity');
-const {GpgkeyEntity} = require('../gpgkey/gpgkeyEntity');
-const {GroupsUsersCollection} = require('../groupUser/groupsUsersCollection');
-const {AccountRecoveryUserSettingEntity} = require("../accountRecovery/accountRecoveryUserSettingEntity");
-const {AccountRecoveryRequestEntity} = require("../accountRecovery/accountRecoveryRequestEntity");
+import Entity from "passbolt-styleguide/src/shared/models/entity/abstract/entity";
+import RoleEntity from "passbolt-styleguide/src/shared/models/entity/role/roleEntity";
+import ProfileEntity from "../profile/profileEntity";
+import GpgkeyEntity from "../gpgkey/gpgkeyEntity";
+import GroupsUsersCollection from "../groupUser/groupsUsersCollection";
+import EntitySchema from "passbolt-styleguide/src/shared/models/entity/abstract/entitySchema";
+import AccountRecoveryUserSettingEntity from "../accountRecovery/accountRecoveryUserSettingEntity";
+import AppEmailValidatorService from "../../../service/validator/appEmailValidatorService";
+import PendingAccountRecoveryRequestEntity from "../accountRecovery/pendingAccountRecoveryRequestEntity";
 
 const ENTITY_NAME = 'User';
 
@@ -59,7 +60,7 @@ class UserEntity extends Entity {
       delete this._props.account_recovery_user_setting;
     }
     if (this._props.pending_account_recovery_request) {
-      this._pending_account_recovery_request = new AccountRecoveryRequestEntity(this._props.pending_account_recovery_request);
+      this._pending_account_recovery_request = new PendingAccountRecoveryRequestEntity(this._props.pending_account_recovery_request);
       delete this._props.pending_account_recovery_request;
     }
   }
@@ -86,7 +87,7 @@ class UserEntity extends Entity {
         },
         "username": {
           "type": "string",
-          "format": "email"
+          "custom": AppEmailValidatorService.validate
         },
         "active": {
           "type": "boolean"
@@ -131,7 +132,7 @@ class UserEntity extends Entity {
         "gpgkey": GpgkeyEntity.getSchema(),
         "groups_users": GroupsUsersCollection.getSchema(),
         "account_recovery_user_setting": AccountRecoveryUserSettingEntity.getSchema(),
-        "pending_account_recovery_request": AccountRecoveryRequestEntity.getSchema()
+        "pending_account_recovery_request": PendingAccountRecoveryRequestEntity.getSchema()
       }
     };
   }
@@ -208,7 +209,7 @@ class UserEntity extends Entity {
       result.account_recovery_user_setting = this.accountRecoveryUserSetting.toDto();
     }
     if (this.pendingAccountRecoveryUserRequest && contain.pending_account_recovery_request) {
-      result.pending_account_recovery_request = this.pendingAccountRecoveryUserRequest.toDto(AccountRecoveryRequestEntity.ALL_CONTAIN_OPTIONS);
+      result.pending_account_recovery_request = this.pendingAccountRecoveryUserRequest.toDto();
     }
     return result;
   }
@@ -398,4 +399,4 @@ class UserEntity extends Entity {
   }
 }
 
-exports.UserEntity = UserEntity;
+export default UserEntity;

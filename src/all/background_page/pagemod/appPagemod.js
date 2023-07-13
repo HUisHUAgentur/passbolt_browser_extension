@@ -1,39 +1,100 @@
 /**
- * React application pagemod.
+ * Passbolt ~ Open source password manager for teams
+ * Copyright (c) 2023 Passbolt SA (https://www.passbolt.com)
  *
- * @copyright (c) 2020 Passbolt SA
- * @licence GNU Affero General Public License http://www.gnu.org/licenses/agpl-3.0.en.html
+ * Licensed under GNU Affero General Public License version 3 of the or any later version.
+ * For full copyright and license information, please see the LICENSE.txt
+ * Redistributions of files must retain the above copyright notice.
+ *
+ * @copyright     Copyright (c) 2023 Passbolt SA (https://www.passbolt.com)
+ * @license       https://opensource.org/licenses/AGPL-3.0 AGPL License
+ * @link          https://www.passbolt.com Passbolt(tm)
+ * @since         4.0.0
  */
-const {PageMod} = require('../sdk/page-mod');
-const app = require('../app');
-const Worker = require('../model/worker');
-const {AppInitController} = require("../controller/app/appInitController");
-const {GetLegacyAccountService} = require("../service/account/getLegacyAccountService");
-const GpgAuth = require('../model/gpgauth').GpgAuth;
+import Pagemod from "./pagemod";
+import GetLegacyAccountService from "../service/account/getLegacyAccountService";
+import GpgAuth from "../model/gpgauth";
+import AppInitController from "../controller/app/appInitController";
+import {AppEvents} from "../event/appEvents";
+import {ConfigEvents} from "../event/configEvents";
+import {AuthEvents} from "../event/authEvents";
+import {FolderEvents} from "../event/folderEvents";
+import {ResourceEvents} from "../event/resourceEvents";
+import {ResourceTypeEvents} from "../event/resourceTypeEvents";
+import {RoleEvents} from "../event/roleEvents";
+import {KeyringEvents} from "../event/keyringEvents";
+import {SecretEvents} from "../event/secretEvents";
+import {OrganizationSettingsEvents} from "../event/organizationSettingsEvents";
+import {ShareEvents} from "../event/shareEvents";
+import {SubscriptionEvents} from "../event/subscriptionEvents";
+import {UserEvents} from "../event/userEvents";
+import {GroupEvents} from "../event/groupEvents";
+import {CommentEvents} from "../event/commentEvents";
+import {TagEvents} from "../event/tagEvents";
+import {FavoriteEvents} from "../event/favoriteEvents";
+import {ImportResourcesEvents} from "../event/importResourcesEvents";
+import {ExportResourcesEvents} from "../event/exportResourcesEvents";
+import {ActionLogEvents} from "../event/actionLogEvents";
+import {MultiFactorAuthenticationEvents} from "../event/multiFactorAuthenticationEvents";
+import {ThemeEvents} from "../event/themeEvents";
+import {LocaleEvents} from "../event/localeEvents";
+import {PasswordGeneratorEvents} from "../event/passwordGeneratorEvents";
+import {MobileEvents} from "../event/mobileEvents";
+import {PownedPasswordEvents} from '../event/pownedPasswordEvents';
+import {MfaEvents} from "../event/mfaEvents";
+import {ClipboardEvents} from "../event/clipboardEvents";
 
-/*
- * This pagemod help bootstrap the passbolt application from a passbolt server app page
- */
-const App = function() {};
-App._pageMod = null;
-
-App.init = function() {
-  if (App._pageMod) {
-    App._pageMod.destroy();
-    App._pageMod = null;
+class App extends Pagemod {
+  /**
+   * @inheritDoc
+   * @returns {string}
+   */
+  get appName() {
+    return "App";
   }
 
-  App._pageMod = new PageMod({
-    name: 'App',
-    include: 'about:blank?passbolt=passbolt-iframe-app',
-    contentScriptWhen: 'end',
-    contentScriptFile: [
-      /*
-       * Warning: script and styles need to be modified in
-       * chrome/data/passbolt-iframe-app.html
-       */
-    ],
-    onAttach: async function(worker) {
+  /**
+   * @inheritDoc
+   */
+  get events() {
+    return [
+      ConfigEvents,
+      AppEvents,
+      AuthEvents,
+      FolderEvents,
+      ResourceEvents,
+      ResourceTypeEvents,
+      RoleEvents,
+      KeyringEvents,
+      SecretEvents,
+      OrganizationSettingsEvents,
+      ShareEvents,
+      SubscriptionEvents,
+      UserEvents,
+      GroupEvents,
+      CommentEvents,
+      TagEvents,
+      FavoriteEvents,
+      ImportResourcesEvents,
+      ExportResourcesEvents,
+      ActionLogEvents,
+      MultiFactorAuthenticationEvents,
+      ThemeEvents,
+      LocaleEvents,
+      PasswordGeneratorEvents,
+      MobileEvents,
+      PownedPasswordEvents,
+      MfaEvents,
+      ClipboardEvents
+    ];
+  }
+
+  /**
+   * @inheritDoc
+   */
+  async attachEvents(port) {
+    try {
+      const tab = port._port.sender.tab;
       const auth = new GpgAuth();
       if (!await auth.isAuthenticated() || await auth.isMfaRequired()) {
         console.error('Can not attach application if user is not logged in.');
@@ -44,60 +105,21 @@ App.init = function() {
       const appInitController = new AppInitController();
       await appInitController.main();
 
-      /*
-       * Retrieve the account associated with this worker.
-       * @todo This method comes to replace the User.getInstance().get().
-       */
-      let account;
-      try {
-        account = await GetLegacyAccountService.get();
-      } catch (error) {
-        /*
-         * Ensure the application does not crash completely if the legacy account cannot be retrieved.
-         * The following controllers won't work as expected:
-         * - AccountRecoverySaveUserSettingsController
-         * - ReviewRequestController
-         */
-        console.error('appPagemod::attach legacy account cannot be retrieved, please contact your administrator.');
-        console.error(error);
+      const account = await GetLegacyAccountService.get({role: true});
+      for (const event of this.events) {
+        event.listen({port, tab}, account);
       }
-
-      app.events.appBootstrap.listen(worker);
-
-      // Initialize the events listeners.
-      app.events.app.listen(worker, account);
-      app.events.auth.listen(worker);
-      app.events.clipboard.listen(worker);
-      app.events.config.listen(worker);
-      app.events.folder.listen(worker);
-      app.events.resource.listen(worker);
-      app.events.resourceType.listen(worker);
-      app.events.role.listen(worker);
-      app.events.keyring.listen(worker);
-      app.events.secret.listen(worker);
-      app.events.organizationSettings.listen(worker);
-      app.events.share.listen(worker);
-      app.events.subscription.listen(worker);
-      app.events.user.listen(worker);
-      app.events.group.listen(worker);
-      app.events.comment.listen(worker);
-      app.events.tag.listen(worker);
-      app.events.favorite.listen(worker);
-      app.events.importResources.listen(worker);
-      app.events.exportResources.listen(worker);
-      app.events.actionLogs.listen(worker);
-      app.events.multiFactorAuthentication.listen(worker);
-      app.events.theme.listen(worker);
-      app.events.locale.listen(worker);
-      app.events.passwordGenerator.listen(worker);
-      app.events.mobile.listen(worker);
-
-      // Keep the pagemod event listeners at the end of the list.
-      app.events.pagemod.listen(worker);
-
-      Worker.add('App', worker);
+    } catch (error) {
+      /*
+       * Ensure the application does not crash completely if the legacy account cannot be retrieved.
+       * The following controllers won't work as expected:
+       * - AccountRecoverySaveUserSettingsController
+       * - ReviewRequestController
+       */
+      console.error('appPagemod::attach legacy account cannot be retrieved, please contact your administrator.');
+      console.error(error);
     }
-  });
-};
+  }
+}
 
-exports.App = App;
+export default new App();

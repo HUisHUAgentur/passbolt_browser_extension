@@ -11,10 +11,10 @@
  * @link          https://www.passbolt.com Passbolt(tm)
  * @since         3.6.0
  */
-import {ExternalGpgKeyEntity} from "./externalGpgKeyEntity";
+import ExternalGpgKeyEntity from "./externalGpgKeyEntity";
 import {ExternalGpgKeyEntityFixtures} from "./externalGpgKeyEntity.test.fixtures";
-import {EntitySchema} from "../../abstract/entitySchema";
-import {EntityValidationError} from '../../abstract/entityValidationError';
+import EntitySchema from "passbolt-styleguide/src/shared/models/entity/abstract/entitySchema";
+import EntityValidationError from "passbolt-styleguide/src/shared/models/entity/abstract/entityValidationError";
 
 describe("ExternalGpgKey entity", () => {
   it("schema must validate", () => {
@@ -82,4 +82,8 @@ describe("ExternalGpgKey entity", () => {
       expect(error.hasError('revoked', 'type')).toBe(true);
     }
   });
+
+  it.todo("constructor returns validation error if the user id email is not standard.");
+
+  it.todo("constructor works if the user id email is not standard and the application settings defined a custom validation.");
 });

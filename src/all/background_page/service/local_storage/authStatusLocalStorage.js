@@ -11,8 +11,9 @@
  * @link          https://www.passbolt.com Passbolt(tm)
  * @since         2.13.4
  */
-const {Log} = require('../../model/log');
-const {Lock} = require('../../utils/lock');
+import browser from "../../sdk/polyfill/browserPolyfill";
+import Log from "../../model/log";
+import Lock from "../../utils/lock";
 const lock = new Lock();
 
 const AUTH_STATUS_STORAGE_KEY = 'auth_status';
@@ -49,7 +50,7 @@ class AuthStatusLocalStorage {
    *
    * @param {boolean} isAuthenticated
    * @param {boolean} isMfaRequired
-   * @return {void}
+   * @return {Promise<void>}
    */
   static async set(isAuthenticated, isMfaRequired) {
     await lock.acquire();
@@ -69,19 +70,6 @@ class AuthStatusLocalStorage {
   static get AUTH_STATUS_STORAGE_KEY() {
     return AUTH_STATUS_STORAGE_KEY;
   }
-
-  /**
-   * Init sessions status local storage
-   */
-  static init() {
-    // Flush the local storage when this library is loaded
-    this.flush();
-
-    // Flush the local storage when the passbolt user session is terminated
-    window.addEventListener("passbolt.auth.after-logout", () => {
-      this.flush();
-    });
-  }
 }
 
-exports.AuthStatusLocalStorage = AuthStatusLocalStorage;
+export default AuthStatusLocalStorage;

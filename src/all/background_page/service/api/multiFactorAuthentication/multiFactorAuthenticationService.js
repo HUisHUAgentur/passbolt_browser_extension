@@ -10,7 +10,7 @@
  * @license       https://opensource.org/licenses/AGPL-3.0 AGPL License
  * @link          https://www.passbolt.com Passbolt(tm)
  */
-const {AbstractService} = require('../abstract/abstractService');
+import AbstractService from "../abstract/abstractService";
 
 const USER_SERVICE_RESOURCE_NAME = 'mfa';
 
@@ -49,6 +49,20 @@ class MultiFactorAuthenticationService extends AbstractService {
     const url = this.apiClient.buildUrl(`${this.apiClient.baseUrl}/setup/${userId}`);
     return this.apiClient.fetchAndHandleResponse('DELETE', url);
   }
+
+  /**
+   * retrieve settings from the user
+   *
+   * @returns {Promise<*>} Response body
+   * @throw {TypeError} if user id is not a valid uuid
+   * @throw {ApiFetchError} if mfa for the user cannot be disabled
+   * @public
+   */
+  async getSettings() {
+    const url = this.apiClient.buildUrl(`${this.apiClient.baseUrl}/setup/select`);
+    const settings = await this.apiClient.fetchAndHandleResponse('GET', url);
+    return settings.body;
+  }
 }
 
-exports.MultiFactorAuthenticationService = MultiFactorAuthenticationService;
+export default MultiFactorAuthenticationService;

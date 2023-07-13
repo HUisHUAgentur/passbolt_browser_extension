@@ -11,7 +11,10 @@
  * @link          https://www.passbolt.com Passbolt(tm)
  * @since         3.0.0
  */
-const User = require('../../model/user').User;
+import User from "../../model/user";
+import SsoKitTemporaryStorageService from "../../service/session_storage/ssoKitTemporaryStorageService";
+import SsoDataStorage from "../../service/indexedDB_storage/ssoDataStorage";
+import SsoKitServerPartModel from "../../model/sso/ssoKitServerPartModel";
 
 /**
  * React application bootstrap.
@@ -22,20 +25,21 @@ const User = require('../../model/user').User;
 class AppInitController {
   /**
    *
-   * @returns {Promise<>}
+   * @returns {Promise<void>}
    */
   async main() {
-    const syncUserSettingsPromise = this._syncUserSettings();
-    return Promise.allSettled([syncUserSettingsPromise]);
+    const user = User.getInstance();
+    await this._syncUserSettings(user);
+    await this._syncSsoKit(user);
   }
 
   /**
    * Synchronize the user settings
+   * @param {User} user the user singleton to sync
    * @returns {Promise<void>}
    * @private
    */
-  async _syncUserSettings() {
-    const user = User.getInstance();
+  async _syncUserSettings(user) {
     try {
       await user.settings.sync();
     } catch (error) {
@@ -43,6 +47,29 @@ class AppInitController {
       user.settings.setDefaults();
     }
   }
+
+  /**
+   * Synchronize the SSO kit to the server
+   * @param {User} user the user to get information from
+   * @returns {Promise<void>}
+   * @private
+   */
+  async _syncSsoKit(user) {
+    try {
+      const serverPartSsoKit = await SsoKitTemporaryStorageService.getAndFlush();
+      if (!serverPartSsoKit) {
+        return;
+      }
+
+      const sssoKitServerPartModel = new SsoKitServerPartModel(await user.getApiClientOptions());
+      const ssoKit = await sssoKitServerPartModel.setupSsoKit(serverPartSsoKit);
+      await SsoDataStorage.updateLocalKitIdWith(ssoKit.id);
+    } catch (e) {
+      console.error(e);
+      await SsoDataStorage.flush();
+      await SsoKitTemporaryStorageService.flush();
+    }
+  }
 }
 
-exports.AppInitController = AppInitController;
+export default AppInitController;

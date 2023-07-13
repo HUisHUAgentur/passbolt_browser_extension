@@ -11,25 +11,28 @@
  * @link          https://www.passbolt.com Passbolt(tm)
  * @since         3.0.0
  */
-const {UserEntity} = require('../entity/user/userEntity');
-const {UsersCollection} = require('../entity/user/usersCollection');
-const {UserDeleteTransferEntity} = require('../entity/user/transfer/userDeleteTransfer');
-
-const {UserService} = require('../../service/api/user/userService');
-const {UserLocalStorage} = require('../../service/local_storage/userLocalStorage');
-
-const {PassboltApiFetchError} = require('../../error/passboltApiFetchError');
-const {DeleteDryRunError} = require('../../error/deleteDryRunError');
+import UserLocalStorage from "../../service/local_storage/userLocalStorage";
+import DeleteDryRunError from "../../error/deleteDryRunError";
+import UserService from "../../service/api/user/userService";
+import UserDeleteTransferEntity from "../entity/user/transfer/userDeleteTransfer";
+import UserEntity from "../entity/user/userEntity";
+import UsersCollection from "../entity/user/usersCollection";
+import PassboltApiFetchError from "../../error/passboltApiFetchError";
+import Validator from "validator";
+import RoleEntity from "passbolt-styleguide/src/shared/models/entity/role/roleEntity";
+import UserMeSessionStorageService from "../../service/sessionStorage/userMeSessionStorageService";
 
 class UserModel {
   /**
    * Constructor
    *
    * @param {ApiClientOptions} apiClientOptions
+   * @param {AccountEntity} account the account associated to the worker
    * @public
    */
-  constructor(apiClientOptions) {
+  constructor(apiClientOptions, account = null) {
     this.userService = new UserService(apiClientOptions);
+    this.account = account;
   }
 
   /**
@@ -41,6 +44,10 @@ class UserModel {
   async updateLocalStorage() {
     // contain pending_account_recovery_request is only available for admin or recovery contact role
     const contains =  {profile: true, gpgkey: false, groups_users: false, last_logged_in: true, pending_account_recovery_request: true, account_recovery_user_setting: true};
+    // Add is_mfa_enabled contain if the user account role name is admin
+    if (this.account && this.account.roleName === RoleEntity.ROLE_ADMIN) {
+      contains.is_mfa_enabled = true;
+    }
     const usersCollection = await this.findAll(contains, null, null, true);
     await UserLocalStorage.set(usersCollection);
     return usersCollection;
@@ -55,6 +62,22 @@ class UserModel {
    */
   async resendInvite(username) {
     return this.userService.resendInvite(username);
+  }
+
+  /**
+   * Get or find the signed-in user information.
+   * @param {boolean} refreshCache (Optional) Should request the API and refresh the cache. Default false.
+   * @returns {Promise<UserEntity>}
+   */
+  async getOrFindMe(refreshCache = false) {
+    let user = await UserMeSessionStorageService.get(this.account);
+    if (!user || refreshCache) {
+      const contains = {profile: true, role: true, account_recovery_user_setting: true};
+      user = await this.findOne(this.account.userId, contains, true);
+      await UserMeSessionStorageService.set(this.account, user);
+    }
+
+    return user;
   }
 
   /**
@@ -253,4 +276,4 @@ class UserModel {
   }
 }
 
-exports.UserModel = UserModel;
+export default UserModel;

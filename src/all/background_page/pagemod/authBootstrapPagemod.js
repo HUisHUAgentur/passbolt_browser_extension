@@ -1,68 +1,90 @@
 /**
- * Passbolt Auth pagemod.
+ * Passbolt ~ Open source password manager for teams
+ * Copyright (c) 2023 Passbolt SA (https://www.passbolt.com)
  *
- * This pagemod help with the authentication
+ * Licensed under GNU Affero General Public License version 3 of the or any later version.
+ * For full copyright and license information, please see the LICENSE.txt
+ * Redistributions of files must retain the above copyright notice.
  *
- * @copyright (c) 2017 Passbolt SARL
- * @licence GNU Affero General Public License http://www.gnu.org/licenses/agpl-3.0.en.html
+ * @copyright     Copyright (c) 2023 Passbolt SA (https://www.passbolt.com)
+ * @license       https://opensource.org/licenses/AGPL-3.0 AGPL License
+ * @link          https://www.passbolt.com Passbolt(tm)
+ * @since         4.0.0
  */
-const app = require('../app');
-const User = require('../model/user').User;
-const {PageMod} = require('../sdk/page-mod');
-const Worker = require('../model/worker');
+import Pagemod from "./pagemod";
+import User from "../model/user";
+import {PortEvents} from "../event/portEvents";
+import ParseAuthUrlService from "../service/auth/parseAuthUrlService";
 
-const AuthBootstrap = function() {};
-AuthBootstrap._pageMod = undefined;
-
-AuthBootstrap.init = function() {
-  if (typeof AuthBootstrap._pageMod !== 'undefined') {
-    AuthBootstrap._pageMod.destroy();
-    AuthBootstrap._pageMod = undefined;
+class AuthBootstrap extends Pagemod {
+  /**
+   * @inheritDoc
+   * @returns {string}
+   */
+  get appName() {
+    return "AuthBootstrap";
   }
 
-  /*
-   * The pagemod will be attached to the following pages:
-   * ✓ https://demo.passbolt.com/auth/login
-   * ✓ https://demo.passbolt.com/auth/login/
-   * ✓ https://demo.passbolt.com/auth/login#checkthis
-   * ✓ https://demo.passbolt.com/auth/login?redirect=%2somewhere
-   * ✓ https://demo.passbolt.com/auth/login?redirect=%2somewhere#nice
-   * ✗ https://demoxpassbolt.com/auth/login
-   * ✗ https://demo.passbolt.com/auth/login/nope
+  /**
+   * @inheritDoc
    */
-  const user = User.getInstance();
-  const escapedDomain = user.settings.getDomain().replace(/\W/g, "\\$&");
-  const url = `^${escapedDomain}/auth/login/?(#.*)?(\\?.*)?$`;
-  const regex = new RegExp(url);
+  get contentStyleFiles() {
+    return ['webAccessibleResources/css/themes/default/ext_external.min.css'];
+  }
 
-  AuthBootstrap._pageMod = new PageMod({
-    name: 'AuthBootstrap',
-    include: regex,
-    contentScriptWhen: 'ready',
-    contentStyleFile: [
-      /*
-       * @deprecated when support for v2 is dropped
-       * used to control iframe styling without inline style in v3
-       */
-      'data/css/themes/default/ext_external.min.css'
-    ],
-    contentScriptFile: [
-      'content_scripts/js/dist/vendors.js',
-      'content_scripts/js/dist/login.js',
-    ],
-    attachTo: {existing: true, reload: true},
-    onAttach: function(worker) {
-      user.flushMasterPassword();
-      user.stopSessionKeepAlive();
+  /**
+   * @inheritDoc
+   */
+  get contentScriptFiles() {
+    return [
+      'contentScripts/js/dist/vendors.js',
+      'contentScripts/js/dist/login.js',
+    ];
+  }
 
-      /*
-       * Keep the pagemod event listeners at the end of the list, it answers to an event that allows
-       * the content code to know when the background page is ready.
-       */
-      app.events.pagemod.listen(worker);
+  /**
+   * @inheritDoc
+   */
+  get events() {
+    return [PortEvents];
+  }
 
-      Worker.add('AuthBootstrap', worker);
+  /**
+   * @inheritDoc
+   */
+  get mustReloadOnExtensionUpdate() {
+    return true;
+  }
+
+  /**
+   * @inheritDoc
+   */
+  async canBeAttachedTo(frameDetails) {
+    return this.assertTopFrameAttachConstraint(frameDetails)
+      && this.assertUrlAttachConstraint(frameDetails);
+  }
+
+  /**
+   * Assert that the attached frame is a top frame.
+   * @param {Object} frameDetails
+   * @returns {boolean}
+   */
+  assertTopFrameAttachConstraint(frameDetails) {
+    return frameDetails.frameId === Pagemod.TOP_FRAME_ID;
+  }
+
+  /**
+   * Assert that the attached frame is a top frame.
+   * @param {Object} frameDetails
+   * @returns {boolean}
+   */
+  assertUrlAttachConstraint(frameDetails) {
+    const user = User.getInstance();
+    if (user.isValid()) {
+      return ParseAuthUrlService.test(frameDetails.url);
     }
-  });
-};
-exports.AuthBootstrap = AuthBootstrap;
+    return false;
+  }
+}
+
+export default new AuthBootstrap();

@@ -1,11 +1,12 @@
-
 /**
  * UUID Generator
  *
  * @copyright (c) 2018 Passbolt SARL
  * @licence GNU Affero General Public License http://www.gnu.org/licenses/agpl-3.0.en.html
  */
-const randomBytes = require('../sdk/random').randomBytes;
+import jsSHA from 'jssha';
+import XRegExp from 'xregexp';
+import CryptoRandomValuesService from "../service/crypto/cryptoRandomValuesService";
 
 /**
  * Generate a random text.
@@ -15,7 +16,7 @@ const randomBytes = require('../sdk/random').randomBytes;
 function generateRandomHex(size) {
   let i; let text = '';
   const possible = 'ABCDEF0123456789';
-  const random_array = randomBytes(size);
+  const random_array = CryptoRandomValuesService.randomValuesArray(size);
   for (i = size; i > 0; i--) {
     text += possible.charAt(Math.floor(random_array[i] % possible.length));
   }
@@ -48,4 +49,4 @@ const get = function(seed) {
   return XRegExp.replace(hashStr, search, replace).replace(/\//g, '');
 };
 
-exports.get = get;
+export const Uuid = {get};

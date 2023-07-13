@@ -5,8 +5,9 @@
  * @copyright (c) 2019 Passbolt SA
  * @licence GNU Affero General Public License http://www.gnu.org/licenses/agpl-3.0.en.html
  */
-const {SecretDecryptController} = require('../controller/secret/secretDecryptController');
-const {User} = require('../model/user');
+import User from "../model/user";
+import SecretDecryptController from "../controller/secret/secretDecryptController";
+import PownedPasswordController from '../controller/secret/pownedPasswordController';
 
 const listen = function(worker) {
   /*
@@ -29,6 +30,18 @@ const listen = function(worker) {
       worker.port.emit(requestId, 'ERROR', error);
     }
   });
+
+  /*
+   * Check if password is powned
+   *
+   * @listens passbolt.secrets.powned-password
+   * @param requestId {uuid} The request identifier
+   * @param password {string} the password to check
+   */
+  worker.port.on('passbolt.secrets.powned-password', async(requestId, password) => {
+    const controller = new PownedPasswordController(worker, requestId);
+    await controller._exec(password);
+  });
 };
 
-exports.listen = listen;
+export const SecretEvents = {listen};

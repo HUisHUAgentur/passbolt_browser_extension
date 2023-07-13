@@ -1,66 +1,100 @@
 /**
  * Passbolt ~ Open source password manager for teams
- * Copyright (c) 2022 Passbolt SA (https://www.passbolt.com)
+ * Copyright (c) 2023 Passbolt SA (https://www.passbolt.com)
  *
  * Licensed under GNU Affero General Public License version 3 of the or any later version.
  * For full copyright and license information, please see the LICENSE.txt
  * Redistributions of files must retain the above copyright notice.
  *
- * @copyright     Copyright (c) 2022 Passbolt SA (https://www.passbolt.com)
+ * @copyright     Copyright (c) 2023 Passbolt SA (https://www.passbolt.com)
  * @license       https://opensource.org/licenses/AGPL-3.0 AGPL License
  * @link          https://www.passbolt.com Passbolt(tm)
- * @since         3.7.0
+ * @since         4.0.0
  */
+import Pagemod from "./pagemod";
+import User from "../model/user";
+import {PublicWebsiteSignInEvents} from "../event/publicWebsiteSignInEvents";
+import ParsePublicWebsiteUrlService from "../service/publicWebsite/parsePublicWebsiteUrlService";
+import GetLegacyAccountService from "../service/account/getLegacyAccountService";
 
-const {PageMod} = require('../sdk/page-mod');
-const app = require('../app');
-const Worker = require("../model/worker");
-const {GetLegacyAccountService} = require("../service/account/getLegacyAccountService");
-const {ParsePublicWebsiteUrlService} = require("../service/publicWebsite/parsePublicWebsiteUrlService");
-
-const PublicWebsiteSignIn = function() {};
-PublicWebsiteSignIn._pageMod = undefined;
-
-PublicWebsiteSignIn.init = function() {
-  if (typeof PublicWebsiteSignIn._pageMod !== 'undefined') {
-    PublicWebsiteSignIn._pageMod.destroy();
-    PublicWebsiteSignIn._pageMod = undefined;
+class PublicWebsiteSignIn extends Pagemod {
+  /**
+   * @inheritDoc
+   * @returns {string}
+   */
+  get appName() {
+    return "PublicWebsiteSignIn";
   }
 
-  PublicWebsiteSignIn._pageMod = new PageMod({
-    name: 'PublicWebsiteSignIn',
-    include: ParsePublicWebsiteUrlService.regex,
-    contentScriptWhen: 'ready',
-    contentStyleFile: [],
-    contentScriptFile: [
-      'content_scripts/js/dist/public-website-sign-in/public-website-sign-in.js'
-    ],
-    attachTo: {existing: true, reload: false},
-    onAttach: async function(worker) {
-      Worker.add('PublicWebsiteSignIn', worker);
+  /**
+   * @inheritDoc
+   */
+  get contentScriptFiles() {
+    return [
+      'contentScripts/js/dist/public-website-sign-in/vendors.js',
+      'contentScripts/js/dist/public-website-sign-in/public-website-sign-in.js'
+    ];
+  }
 
-      /*
-       * Retrieve the account associated with this worker.
-       * @todo This method comes to replace the User.getInstance().get().
-       */
-      let account;
-      try {
-        account = await GetLegacyAccountService.get();
-      } catch (error) {
-        console.error('PublicWebsiteSignIn::attach legacy account cannot be retrieved, please contact your administrator.');
-        console.error(error);
-        return;
+  /**
+   * @inheritDoc
+   */
+  get events() {
+    return [PublicWebsiteSignInEvents];
+  }
+
+  /**
+   * @inheritDoc
+   */
+  async canBeAttachedTo(frameDetails) {
+    return this.assertTopFrameAttachConstraint(frameDetails)
+      && this.assertUrlAttachConstraint(frameDetails)
+      && this.assertUserValidConstraint();
+  }
+
+  /**
+   * @inheritDoc
+   */
+  async attachEvents(port) {
+    try {
+      const tab = port._port.sender.tab;
+      const account =  await GetLegacyAccountService.get();
+      for (const event of this.events) {
+        event.listen({port, tab}, account);
       }
-
-      app.events.publicWebsiteSignIn.listen(worker, account);
-
-      /*
-       * Keep the pagemod event listeners at the end of the list, it answers to an event that allows
-       * the content code to know when the background page is ready.
-       */
-      app.events.pagemod.listen(worker);
+    } catch (error) {
+      // Unexpected error, this pagemod shouldn't have been initialized as the PublicWebsiteSignPagemod should have raised an exception and not inject the content script.
+      console.error('PublicWebsiteSignIn::attach legacy account cannot be retrieved, please contact your administrator.');
+      console.error(error);
     }
-  });
-};
+  }
 
-exports.PublicWebsiteSignIn = PublicWebsiteSignIn;
+  /**
+   * Assert that the attached frame is a top frame.
+   * @param {Object} frameDetails
+   * @returns {boolean}
+   */
+  assertTopFrameAttachConstraint(frameDetails) {
+    return frameDetails.frameId === Pagemod.TOP_FRAME_ID;
+  }
+
+  /**
+   * Assert that the attached frame is a top frame.
+   * @param {Object} frameDetails
+   * @returns {boolean}
+   */
+  assertUrlAttachConstraint(frameDetails) {
+    return ParsePublicWebsiteUrlService.test(frameDetails.url);
+  }
+
+  /**
+   * Assert that the user is valid.
+   * @returns {boolean}
+   */
+  assertUserValidConstraint() {
+    const user = User.getInstance();
+    return user.isValid();
+  }
+}
+
+export default new PublicWebsiteSignIn();

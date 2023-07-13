@@ -10,9 +10,9 @@
  * @license       https://opensource.org/licenses/AGPL-3.0 AGPL License
  * @link          https://www.passbolt.com Passbolt(tm)
  */
-const {GetLocaleController} = require("../controller/locale/getLocaleController");
-const {InformMenuController} = require("../controller/InformMenuController/InformMenuController");
-const {User} = require('../model/user');
+import User from "../model/user";
+import InformMenuController from "../controller/InformMenuController/InformMenuController";
+import GetLocaleController from "../controller/locale/getLocaleController";
 
 /**
  * Listens the inform menu events
@@ -60,14 +60,14 @@ const listen = function(worker) {
   worker.port.on('passbolt.in-form-menu.fill-password', async(requestId, password) => {
     const apiClientOptions =  await User.getInstance().getApiClientOptions();
     const informMenuController = new InformMenuController(worker, apiClientOptions);
-    informMenuController.fillPassword(requestId, password);
+    await informMenuController.fillPassword(requestId, password);
   });
 
   /** Whenever the user wants to close the in-form-menu */
   worker.port.on('passbolt.in-form-menu.close', async requestId => {
     const apiClientOptions =  await User.getInstance().getApiClientOptions();
     const informMenuController = new InformMenuController(worker, apiClientOptions);
-    informMenuController.close(requestId);
+    await informMenuController.close(requestId);
   });
 
   /*
@@ -90,4 +90,4 @@ const listen = function(worker) {
   });
 };
 
-exports.listen = listen;
+export const InformMenuEvents = {listen};

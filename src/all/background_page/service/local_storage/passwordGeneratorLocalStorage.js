@@ -11,8 +11,9 @@
  * @link          https://www.passbolt.com Passbolt(tm)
  * @since         3.3.0
  */
-const {Log} = require('../../model/log');
-const Lock = require('../../utils/lock').Lock;
+import browser from "../../sdk/polyfill/browserPolyfill";
+import Log from "../../model/log";
+import Lock from "../../utils/lock";
 const lock = new Lock();
 
 const PASSWORD_GENERATOR_LOCAL_STORAGE_KEY = 'passwordGenerator';
@@ -51,20 +52,6 @@ class PasswordGeneratorLocalStorage {
     await browser.storage.local.set({passwordGenerator: passwordGenerator});
     lock.release();
   }
-
-
-  /**
-   * Init resource local storage
-   */
-  static init() {
-    // Flush the local storage when this library is loaded
-    this.flush();
-
-    // Flush the local storage when the passbolt user session is terminated
-    window.addEventListener("passbolt.auth.after-logout", () => {
-      this.flush();
-    });
-  }
 }
 
-exports.PasswordGeneratorLocalStorage = PasswordGeneratorLocalStorage;
+export default PasswordGeneratorLocalStorage;

@@ -11,10 +11,11 @@
  * @link          https://www.passbolt.com Passbolt(tm)
  * @since         2.13.0
  */
-const {Entity} = require('../abstract/entity');
-const {EntitySchema} = require('../abstract/entitySchema');
-const {UserEntity} = require('../user/userEntity');
-const {GroupEntity} = require('../group/groupEntity');
+import Entity from "passbolt-styleguide/src/shared/models/entity/abstract/entity";
+import EntitySchema from "passbolt-styleguide/src/shared/models/entity/abstract/entitySchema";
+import GroupEntity from "../group/groupEntity";
+import UserEntity from "../user/userEntity";
+import Validator from "validator";
 
 const ENTITY_NAME = 'Permission';
 const PERMISSION_OWNER = 15;
@@ -505,4 +506,4 @@ class PermissionEntity extends Entity {
   }
 }
 
-exports.PermissionEntity = PermissionEntity;
+export default PermissionEntity;

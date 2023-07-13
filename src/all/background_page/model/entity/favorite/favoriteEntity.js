@@ -11,8 +11,8 @@
  * @link          https://www.passbolt.com Passbolt(tm)
  * @since         2.13.0
  */
-const {Entity} = require('../abstract/entity');
-const {EntitySchema} = require('../abstract/entitySchema');
+import Entity from "passbolt-styleguide/src/shared/models/entity/abstract/entity";
+import EntitySchema from "passbolt-styleguide/src/shared/models/entity/abstract/entitySchema";
 
 const ENTITY_NAME = 'Favorite';
 const FAVORITE_RESOURCE = 'Resource';
@@ -43,7 +43,6 @@ class FavoriteEntity extends Entity {
         "id",
         "user_id",
         "foreign_key",
-        //"foreign_model",
         "created"
       ],
       "properties": {
@@ -59,22 +58,10 @@ class FavoriteEntity extends Entity {
           "type": "string",
           "format": "uuid"
         },
-        /*
-         * "foreign_model": {
-         *   "type": "string",
-         *   "enum": FavoriteEntity.ALLOWED_FOREIGN_MODELS
-         * },
-         */
         "created": {
           "type": "string",
           "format": "date-time"
-        },
-        /*
-         * "modified": {
-         *   "type": "string",
-         *   "format": "date-time"
-         * }
-         */
+        }
       }
     };
   }
@@ -109,27 +96,11 @@ class FavoriteEntity extends Entity {
   }
 
   /**
-   * Get favorite foreignModel
-   * @returns {string} uuid
-   */
-  get foreignModel() {
-    return this._props.foreign_model;
-  }
-
-  /**
    * Get created date
    * @returns {(string|null)} date
    */
   get created() {
     return this._props.created || null;
-  }
-
-  /**
-   * Get modified date
-   * @returns {(string|null)} date
-   */
-  get modified() {
-    return this._props.modified || null;
   }
 
   /*
@@ -162,4 +133,4 @@ class FavoriteEntity extends Entity {
   }
 }
 
-exports.FavoriteEntity = FavoriteEntity;
+export default FavoriteEntity;

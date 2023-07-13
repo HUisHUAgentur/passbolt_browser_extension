@@ -1,67 +1,68 @@
 /**
- * Passbolt Auth Form pagemod.
+ * Passbolt ~ Open source password manager for teams
+ * Copyright (c) 2023 Passbolt SA (https://www.passbolt.com)
  *
- * This pagemod help with the authentication
+ * Licensed under GNU Affero General Public License version 3 of the or any later version.
+ * For full copyright and license information, please see the LICENSE.txt
+ * Redistributions of files must retain the above copyright notice.
  *
- * @copyright (c) 2017 Passbolt SARL
- * @licence GNU Affero General Public License http://www.gnu.org/licenses/agpl-3.0.en.html
+ * @copyright     Copyright (c) 2023 Passbolt SA (https://www.passbolt.com)
+ * @license       https://opensource.org/licenses/AGPL-3.0 AGPL License
+ * @link          https://www.passbolt.com Passbolt(tm)
+ * @since         4.0.0
  */
-const {PageMod} = require('../sdk/page-mod');
-const app = require('../app');
-const Worker = require('../model/worker');
-const {GetLegacyAccountService} = require("../service/account/getLegacyAccountService");
+import Pagemod from "./pagemod";
+import GetLegacyAccountService from "../service/account/getLegacyAccountService";
+import {UserEvents} from "../event/userEvents";
+import {KeyringEvents} from "../event/keyringEvents";
+import {AuthEvents} from "../event/authEvents";
+import {ConfigEvents} from "../event/configEvents";
+import {OrganizationSettingsEvents} from "../event/organizationSettingsEvents";
+import {LocaleEvents} from "../event/localeEvents";
 
-const Auth = function() {};
-Auth._pageMod = undefined;
-
-Auth.init = function() {
-  if (typeof Auth._pageMod !== 'undefined') {
-    Auth._pageMod.destroy();
-    Auth._pageMod = undefined;
+class Auth extends Pagemod {
+  /**
+   * @inheritDoc
+   * @returns {string}
+   */
+  get appName() {
+    return "Auth";
   }
-  Auth._pageMod = new PageMod({
-    name: 'Auth',
-    include: 'about:blank?passbolt=passbolt-iframe-login',
-    contentScriptWhen: 'ready',
-    contentScriptFile: [
-      /*
-       * Warning: script and styles need to be modified in
-       * chrome/data/passbolt-iframe-login-form.html
-       */
-    ],
-    onAttach: async function(worker) {
-      Worker.add('Auth', worker);
 
-      /*
-       * Retrieve the account associated with this worker.
-       * @todo This method comes to replace the User.getInstance().get()
-       */
-      let account;
-      try {
-        account = await GetLegacyAccountService.get();
-      } catch (error) {
-        /*
-         * Ensure the application does not crash completely if the legacy account cannot be retrieved.
-         * The following controllers won't work as expected:
-         * - RequestHelpCredentialsLostController
-         */
-        console.error('authPagemod::attach legacy account cannot be retrieved, please contact your administrator.');
-        console.error(error);
+  /**
+   * @inheritDoc
+   */
+  get events() {
+    return [
+      ConfigEvents,
+      UserEvents,
+      KeyringEvents,
+      AuthEvents,
+      OrganizationSettingsEvents,
+      LocaleEvents
+    ];
+  }
+
+  /**
+   * @inheritDoc
+   */
+  async attachEvents(port) {
+    try {
+      const tab = port._port.sender.tab;
+      const account = await GetLegacyAccountService.get();
+      for (const event of this.events) {
+        event.listen({port, tab}, account);
       }
-
-      app.events.user.listen(worker);
-      app.events.keyring.listen(worker);
-      app.events.auth.listen(worker, account);
-      app.events.config.listen(worker);
-      app.events.organizationSettings.listen(worker);
-      app.events.locale.listen(worker);
-
+    } catch (error) {
       /*
-       * Keep the pagemod event listeners at the end of the list, it answers to an event that allows
-       * the content code to know when the background page is ready.
+       * Ensure the application does not crash completely if the legacy account cannot be retrieved.
+       * The following controllers won't work as expected:
+       * - RequestHelpCredentialsLostController
        */
-      app.events.pagemod.listen(worker);
+      console.error('authPagemod::attach legacy account cannot be retrieved, please contact your administrator.');
+      console.error(error);
     }
-  });
-};
-exports.Auth = Auth;
+  }
+}
+
+export default new Auth();

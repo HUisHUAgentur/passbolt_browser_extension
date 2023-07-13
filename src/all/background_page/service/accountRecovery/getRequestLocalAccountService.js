@@ -12,9 +12,10 @@
  * @since         3.6.0
  */
 
-const {ParseAccountRecoveryUrlService} = require("./parseAccountRecoveryUrlService");
-const {AccountLocalStorage} = require("../local_storage/accountLocalStorage");
-const {AccountAccountRecoveryEntity} = require("../../model/entity/account/accountAccountRecoveryEntity");
+import AccountLocalStorage from "../local_storage/accountLocalStorage";
+import AccountAccountRecoveryEntity from "../../model/entity/account/accountAccountRecoveryEntity";
+import ParseAccountRecoveryUrlService from "./parseAccountRecoveryUrlService";
+
 
 class GetRequestLocalAccountService {
   /**
@@ -37,7 +38,7 @@ class GetRequestLocalAccountService {
       throw new Error('No account found for the given user in the local storage.');
     }
 
-    const account = new AccountAccountRecoveryEntity(accountDto);
+    const account = new AccountAccountRecoveryEntity(accountDto, {validateUsername: false});
     if (account.domain !== domain
       || account.authenticationTokenToken !== authenticationTokenToken
       || account.userId !== userId) {
@@ -48,4 +49,4 @@ class GetRequestLocalAccountService {
   }
 }
 
-exports.GetRequestLocalAccountService = GetRequestLocalAccountService;
+export default GetRequestLocalAccountService;

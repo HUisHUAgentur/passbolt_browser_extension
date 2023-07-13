@@ -13,16 +13,14 @@
  */
 
 import {enableFetchMocks} from "jest-fetch-mock";
-import {CompleteSetupController} from "./completeSetupController";
+import CompleteSetupController from "./completeSetupController";
 import {defaultApiClientOptions} from "../../service/api/apiClient/apiClientOptions.test.data";
 import {mockApiResponse} from "../../../../../test/mocks/mockApiResponse";
 import {withSecurityTokenAccountSetupDto} from "../../model/entity/account/accountSetupEntity.test.data";
-import {AccountSetupEntity} from "../../model/entity/account/accountSetupEntity";
-import {User} from "../../model/user";
-import {Keyring} from "../../model/keyring";
-import {readKeyOrFail} from "../../utils/openpgp/openpgpAssertions";
-
-const app = require("../../app");
+import AccountSetupEntity from "../../model/entity/account/accountSetupEntity";
+import User from "../../model/user";
+import Keyring from "../../model/keyring";
+import {OpenpgpAssertion} from "../../utils/openpgp/openpgpAssertions";
 
 jest.mock("../../app");
 
@@ -39,10 +37,8 @@ describe("CompleteSetupController", () => {
 
       // Mock API complete request.
       fetch.doMockOnce(() => mockApiResponse());
-      // Mock pagemods to assert the complete start the auth and inform menu pagemods.
-      app.pageMods.WebIntegration.init = jest.fn();
 
-      expect.assertions(11);
+      expect.assertions(9);
       await controller.exec();
       const user = User.getInstance().get();
       expect(user.id).toStrictEqual(account.userId);
@@ -53,10 +49,10 @@ describe("CompleteSetupController", () => {
       expect(user.settings.securityToken).toStrictEqual(account.securityToken.toDto());
 
       const keyring = new Keyring();
-      const keyringPrivateKey = await readKeyOrFail(keyring.findPrivate().armoredKey);
-      const keyringPublicKey = await readKeyOrFail(keyring.findPublic(account.userId).armoredKey);
-      const accountPrivateKey = await readKeyOrFail(account.userPrivateArmoredKey);
-      const accountPublicKey = await readKeyOrFail(account.userPublicArmoredKey);
+      const keyringPrivateKey = await OpenpgpAssertion.readKeyOrFail(keyring.findPrivate().armoredKey);
+      const keyringPublicKey = await OpenpgpAssertion.readKeyOrFail(keyring.findPublic(account.userId).armoredKey);
+      const accountPrivateKey = await OpenpgpAssertion.readKeyOrFail(account.userPrivateArmoredKey);
+      const accountPublicKey = await OpenpgpAssertion.readKeyOrFail(account.userPublicArmoredKey);
       const keyringPrivateFingerprint = keyringPrivateKey.getFingerprint().toUpperCase();
       const accountPrivateFingerprint = accountPrivateKey.getFingerprint().toUpperCase();
       const keyringPublicFingerprint = keyringPublicKey.getFingerprint().toUpperCase();
@@ -64,9 +60,6 @@ describe("CompleteSetupController", () => {
       expect(keyringPrivateFingerprint).toStrictEqual(accountPrivateFingerprint);
       expect(keyringPublicFingerprint).toStrictEqual(accountPublicFingerprint);
       expect(keyringPublicFingerprint).toStrictEqual(keyringPrivateFingerprint);
-
-      expect(app.pageMods.WebIntegration.init).toHaveBeenCalled();
-      expect(app.pageMods.AuthBootstrap.init).toHaveBeenCalled();
     });
 
     it("Should not add the account to the local storage if the complete API request fails.", async() => {
@@ -75,8 +68,6 @@ describe("CompleteSetupController", () => {
 
       // Mock API complete request.
       fetch.doMockOnce(() => Promise.reject());
-      // Mock pagemods to assert the complete start the auth and inform menu pagemods.
-      app.pageMods.WebIntegration.init = jest.fn();
 
       const promise = controller.exec();
 

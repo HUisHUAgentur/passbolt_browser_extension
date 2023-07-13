@@ -12,11 +12,11 @@
  * @since         3.6.0
  */
 
-const Worker = require("../../model/worker");
-const {AuthModel} = require("../../model/auth/authModel");
-const {SetupModel} = require("../../model/setup/setupModel");
-const {assertPublicKey, readKeyOrFail} = require('../../utils/openpgp/openpgpAssertions');
-const {AccountRecoveryUserSettingEntity} = require("../../model/entity/accountRecovery/accountRecoveryUserSettingEntity");
+import {OpenpgpAssertion} from "../../utils/openpgp/openpgpAssertions";
+import AuthModel from "../../model/auth/authModel";
+import SetupModel from "../../model/setup/setupModel";
+import AccountRecoveryUserSettingEntity from "../../model/entity/accountRecovery/accountRecoveryUserSettingEntity";
+import WorkerService from "../../service/worker/workerService";
 
 class StartRecoverController {
   /**
@@ -57,7 +57,7 @@ class StartRecoverController {
       await this._findAndSetAccountServerPublicKey();
       await this._findAndSetAccountUserMeta();
     } catch (error) {
-      this._handleUnexpectedError(error);
+      await this._handleUnexpectedError(error);
     }
   }
 
@@ -68,8 +68,8 @@ class StartRecoverController {
    */
   async _findAndSetAccountServerPublicKey() {
     const serverKeyDto = await this.authModel.getServerKey();
-    const serverKey = await readKeyOrFail(serverKeyDto.armored_key);
-    assertPublicKey(serverKey);
+    const serverKey = await OpenpgpAssertion.readKeyOrFail(serverKeyDto.armored_key);
+    OpenpgpAssertion.assertPublicKey(serverKey);
     // associate the server public key to the current account.
     this.account.serverPublicArmoredKey = serverKey.armor();
   }
@@ -105,11 +105,11 @@ class StartRecoverController {
    * @param {Error} error The error.
    * @private
    */
-  _handleUnexpectedError(error) {
-    Worker.get('RecoverBootstrap', this.worker.tab.id).port.emit('passbolt.recover-bootstrap.remove-iframe');
+  async _handleUnexpectedError(error) {
+    (await WorkerService.get('RecoverBootstrap', this.worker.tab.id)).port.emit('passbolt.recover-bootstrap.remove-iframe');
     console.error(error);
     throw error;
   }
 }
 
-exports.StartRecoverController = StartRecoverController;
+export default StartRecoverController;

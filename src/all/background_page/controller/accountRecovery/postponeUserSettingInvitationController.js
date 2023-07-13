@@ -11,7 +11,8 @@
  * @link          https://www.passbolt.com Passbolt(tm)
  * @since         3.6.0
  */
-const {PostponedUserSettingInvitationService} = require('../../service/accountRecovery/postponedUserSettingInvitationService');
+
+import PostponedUserSettingInvitationService from '../../service/api/invitation/postponedUserSettingInvitationService';
 
 class PostponeUserSettingInvitationController {
   /**
@@ -42,8 +43,8 @@ class PostponeUserSettingInvitationController {
    * Set the account recovery enrollement inviration as postponed.
    */
   async exec() {
-    PostponedUserSettingInvitationService.postpone();
+    PostponedUserSettingInvitationService.postponeAccountRecovery();
   }
 }
 
-exports.PostponeUserSettingInvitationController = PostponeUserSettingInvitationController;
+export default PostponeUserSettingInvitationController;

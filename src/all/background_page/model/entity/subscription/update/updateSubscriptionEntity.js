@@ -10,8 +10,9 @@
  * @license       https://opensource.org/licenses/AGPL-3.0 AGPL License
  * @link          https://www.passbolt.com Passbolt(tm)
  */
-const {Entity} = require('../../abstract/entity');
-const {EntitySchema} = require('../../abstract/entitySchema');
+import Entity from "passbolt-styleguide/src/shared/models/entity/abstract/entity";
+import EntitySchema from "passbolt-styleguide/src/shared/models/entity/abstract/entitySchema";
+
 
 const ENTITY_NAME = "UpdateSubscription";
 
@@ -107,4 +108,4 @@ class UpdateSubscriptionEntity extends Entity {
   }
 }
 
-exports.UpdateSubscriptionEntity = UpdateSubscriptionEntity;
+export default UpdateSubscriptionEntity;

@@ -11,9 +11,9 @@
  * @link          https://www.passbolt.com Passbolt(tm)
  * @since         3.2.0
  */
-const {OrganizationSettingsEntity} = require("../entity/organizationSettings/organizationSettingsEntity");
-const {OrganizationSettingsService} = require("../../service/api/organizationSettings/organizationSettingsService");
-const {PassboltApiFetchError} = require("../../error/passboltApiFetchError");
+import OrganizationSettingsService from "../../service/api/organizationSettings/organizationSettingsService";
+import OrganizationSettingsEntity from "../entity/organizationSettings/organizationSettingsEntity";
+import PassboltApiFetchError from "../../error/passboltApiFetchError";
 
 // Settings local cache.
 let _settings;
@@ -33,11 +33,31 @@ class OrganizationSettingsModel {
   }
 
   /**
+   * Set the settings.
+   * @params {OrganizationSettingsEntity} settings The settings
+   */
+  static set(settings) {
+    if (!(settings instanceof OrganizationSettingsEntity)) {
+      throw new Error('The settings should be an instance of OrganizationSettingsEntity');
+    }
+    _settings = settings;
+  }
+
+  /**
+   * get the cached settings if any.
+   * @return {OrganizationSettingsEntity|null}
+   */
+  static get() {
+    return _settings || null;
+  }
+
+  /**
    * Returns the organization settings from the local cache or requests the server.
    * @param {boolean} refreshCache Should request the API to retrieve the organization settings and refresh the cache.
+   * Default false
    * @returns {Promise<OrganizationSettingsEntity>}
    */
-  async getOrFind(refreshCache) {
+  async getOrFind(refreshCache = false) {
     if (refreshCache || !_settings) {
       _settings = await this.find();
     }
@@ -67,9 +87,8 @@ class OrganizationSettingsModel {
         organizationSettingsDto = OrganizationSettingsEntity.disabledOrganizationSettings;
       }
     }
-
     return new OrganizationSettingsEntity(organizationSettingsDto);
   }
 }
 
-exports.OrganizationSettingsModel = OrganizationSettingsModel;
+export default OrganizationSettingsModel;

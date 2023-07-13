@@ -11,12 +11,12 @@
  * @link          https://www.passbolt.com Passbolt(tm)
  * @since         3.0.0
  */
-const {Log} = require('../../model/log');
-const Lock = require('../../utils/lock').Lock;
+import browser from "../../sdk/polyfill/browserPolyfill";
+import Log from "../../model/log";
+import ResourceTypeEntity from "../../model/entity/resourceType/resourceTypeEntity";
+import ResourceTypesCollection from "../../model/entity/resourceType/resourceTypesCollection";
+import Lock from "../../utils/lock";
 const lock = new Lock();
-
-const {ResourceTypeEntity} = require('../../model/entity/resourceType/resourceTypeEntity');
-const {ResourceTypesCollection} = require("../../model/entity/resourceType/resourceTypesCollection");
 
 const RESOURCE_TYPES_LOCAL_STORAGE_KEY = 'resourceTypes';
 
@@ -117,19 +117,6 @@ class ResourceTypeLocalStorage {
       throw new TypeError('ResourceTypeLocalStorage expects ResourceTypeEntity id to be set');
     }
   }
-
-  /**
-   * Init resource local storage
-   */
-  static init() {
-    // Flush the local storage when this library is loaded
-    this.flush();
-
-    // Flush the local storage when the passbolt user session is terminated
-    window.addEventListener("passbolt.auth.after-logout", () => {
-      this.flush();
-    });
-  }
 }
 
-exports.ResourceTypeLocalStorage = ResourceTypeLocalStorage;
+export default ResourceTypeLocalStorage;

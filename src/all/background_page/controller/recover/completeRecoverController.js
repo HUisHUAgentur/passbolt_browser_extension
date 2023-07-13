@@ -12,11 +12,11 @@
  * @since         3.6.0
  */
 
-const app = require("../../app");
-const {SetupModel} = require("../../model/setup/setupModel");
-const {AccountModel} = require("../../model/account/accountModel");
-const {AccountEntity} = require("../../model/entity/account/accountEntity");
-const {AccountRecoverEntity} = require("../../model/entity/account/accountRecoverEntity");
+import AccountModel from "../../model/account/accountModel";
+import SetupModel from "../../model/setup/setupModel";
+import AccountRecoverEntity from "../../model/entity/account/accountRecoverEntity";
+import AccountEntity from "../../model/entity/account/accountEntity";
+
 
 class CompleteRecoverController {
   /**
@@ -58,15 +58,7 @@ class CompleteRecoverController {
     const accountRecovered = new AccountEntity(this.account.toDto(AccountRecoverEntity.ALL_CONTAIN_OPTIONS));
     await this.setupModel.completeRecover(this.account);
     await this.accountModel.add(accountRecovered);
-    // If there was no account yet configured, the following pagemods were not instantiated a the extension bootstrap.
-    if (!app.pageMods.WebIntegration._pageMod) {
-      app.pageMods.WebIntegration.init();
-    }
-    app.pageMods.AuthBootstrap.init();
-    if (!app.pageMods.PublicWebsiteSignIn._pageMod) {
-      app.pageMods.PublicWebsiteSignIn.init();
-    }
   }
 }
 
-exports.CompleteRecoverController = CompleteRecoverController;
+export default CompleteRecoverController;

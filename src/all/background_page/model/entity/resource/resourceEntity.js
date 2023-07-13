@@ -11,15 +11,16 @@
  * @link          https://www.passbolt.com Passbolt(tm)
  * @since         2.13.0
  */
-const {Entity} = require('../abstract/entity');
-const {EntitySchema} = require('../abstract/entitySchema');
-const {EntityValidationError} = require('../abstract/entityValidationError');
-const {FavoriteEntity} = require('../favorite/favoriteEntity');
-const {PermissionEntity} = require('../permission/permissionEntity');
-const {PermissionsCollection} = require('../permission/permissionsCollection');
-const {ResourceTypeEntity} = require('../resourceType/resourceTypeEntity');
-const {TagsCollection} = require('../tag/tagsCollection');
-const {ResourceSecretsCollection} = require('../secret/resource/resourceSecretsCollection');
+import PermissionEntity from "../permission/permissionEntity";
+import PermissionsCollection from "../permission/permissionsCollection";
+import Entity from "passbolt-styleguide/src/shared/models/entity/abstract/entity";
+import FavoriteEntity from "../favorite/favoriteEntity";
+import ResourceTypeEntity from "../resourceType/resourceTypeEntity";
+import TagsCollection from "../tag/tagsCollection";
+import ResourceSecretsCollection from "../secret/resource/resourceSecretsCollection";
+import EntityValidationError from "passbolt-styleguide/src/shared/models/entity/abstract/entityValidationError";
+import EntitySchema from "passbolt-styleguide/src/shared/models/entity/abstract/entitySchema";
+
 
 const ENTITY_NAME = 'Resource';
 const RESOURCE_NAME_MAX_LENGTH = 255;
@@ -610,4 +611,4 @@ class ResourceEntity extends Entity {
   }
 }
 
-exports.ResourceEntity = ResourceEntity;
+export default ResourceEntity;

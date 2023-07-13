@@ -11,10 +11,10 @@
  * @link          https://www.passbolt.com Passbolt(tm)
  * @since         2.13.0
  */
-const {EntityValidationError} = require('../../abstract/entityValidationError');
-const {EntityCollection} = require('../../abstract/entityCollection');
-const {EntitySchema} = require('../../abstract/entitySchema');
-const {PermissionTransferEntity} = require('./permissionTransferEntity');
+import PermissionTransferEntity from "./permissionTransferEntity";
+import EntityCollection from "passbolt-styleguide/src/shared/models/entity/abstract/entityCollection";
+import EntityValidationError from "passbolt-styleguide/src/shared/models/entity/abstract/entityValidationError";
+import EntitySchema from "passbolt-styleguide/src/shared/models/entity/abstract/entitySchema";
 
 const ENTITY_NAME = 'PermissionTransfers';
 
@@ -90,4 +90,4 @@ class PermissionTransfersCollection extends EntityCollection {
   }
 }
 
-exports.PermissionTransfersCollection = PermissionTransfersCollection;
+export default PermissionTransfersCollection;

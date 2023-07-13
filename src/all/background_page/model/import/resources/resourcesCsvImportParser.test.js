@@ -10,29 +10,42 @@
  * @license       https://opensource.org/licenses/AGPL-3.0 AGPL License
  * @link          https://www.passbolt.com Passbolt(tm)
  */
-window.PapaParse = require("papaparse");
 import fs from "fs";
 
-import {FileFormatError} from "../../../error/fileFormatError";
-import {ResourcesCsvImportParser} from "./resourcesCsvImportParser";
+import FileFormatError from "../../../error/fileFormatError";
+import ResourcesCsvImportParser from "./resourcesCsvImportParser";
 
-import {Csv1PasswordRowParser} from "./csvRowParser/csv1PasswordRowParser";
-import {CsvKdbxRowParser} from "./csvRowParser/csvKdbxRowParser";
-import {CsvLastPassRowParser} from "./csvRowParser/csvLastPassRowParser";
+import Csv1PasswordRowParser from "./csvRowParser/csv1PasswordRowParser";
+import CsvKdbxRowParser from "./csvRowParser/csvKdbxRowParser";
+import CsvLastPassRowParser from "./csvRowParser/csvLastPassRowParser";
 
-import {ExternalResourceEntity} from "../../entity/resource/external/externalResourceEntity";
-import {ImportResourcesFileEntity} from "../../entity/import/importResourcesFileEntity";
-import {EntityValidationError} from "../../entity/abstract/entityValidationError";
-import {ImportError} from "../../../error/importError";
-import {BinaryConvert} from "../../../utils/format/binaryConvert";
+import ExternalResourceEntity from "../../entity/resource/external/externalResourceEntity";
+import ImportResourcesFileEntity from "../../entity/import/importResourcesFileEntity";
+import EntityValidationError from "passbolt-styleguide/src/shared/models/entity/abstract/entityValidationError";
+import ImportError from "../../../error/importError";
+import BinaryConvert from "../../../utils/format/binaryConvert";
+import CsvChromiumRowParser from "./csvRowParser/csvChromiumRowParser";
+import CsvBitWardenRowParser from "./csvRowParser/csvBitWardenRowParser";
+import CsvSafariRowParser from "./csvRowParser/csvSafariRowParser";
+import CsvDashlaneRowParser from "./csvRowParser/csvDashlaneRowParser";
+import CsvMozillaPlatformRowParser from "./csvRowParser/csvMozillaPlatformRowParser";
+import CsvNordpassRowParser from "./csvRowParser/csvNordpassRowParser";
+import CsvLogMeOnceRowParser from "./csvRowParser/csvLogMeOnceRowParser";
 
 describe("ResourcesCsvImportParser", () => {
   it("should be aware of the supported row parsers", () => {
-    expect(ResourcesCsvImportParser.register).toHaveLength(3);
+    expect(ResourcesCsvImportParser.register).toHaveLength(10);
     const supportedRowParsers = [
       Csv1PasswordRowParser,
       CsvKdbxRowParser,
-      CsvLastPassRowParser
+      CsvLastPassRowParser,
+      CsvChromiumRowParser,
+      CsvBitWardenRowParser,
+      CsvSafariRowParser,
+      CsvDashlaneRowParser,
+      CsvMozillaPlatformRowParser,
+      CsvNordpassRowParser,
+      CsvLogMeOnceRowParser
     ];
     expect(ResourcesCsvImportParser.register).toEqual(expect.arrayContaining(supportedRowParsers));
   });
@@ -226,7 +239,7 @@ describe("ResourcesCsvImportParser", () => {
   });
 
   it("should catch and keep a reference of import folder entity validation error", async() => {
-    const path = "too-long-folder-name-too-long-folder-name-too-long-folder-name-too-long-folder-name";
+    const path = "too-long-folder-name-too-long-folder-name-too-long-folder-name-too-long-folder-nametoo-long-folder-name-too-long-folder-name-too-long-folder-name-too-long-folder-nametoo-long-folder-name-too-long-folder-name-too-long-folder-name-too-long-folder-nametoo-long-folder-name-too-long-folder-name-too-long-folder-name-too-long-folder-name";
     const csv = "Title,Username,URL,Password,Notes,Group\n" +
       `,,,,,${path}\n`;
     const importDto = {

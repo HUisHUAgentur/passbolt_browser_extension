@@ -11,15 +11,15 @@
  * @link          https://www.passbolt.com Passbolt(tm)
  * @since         3.6.0
  */
-
+import "../../../../../test/mocks/mockSsoDataStorage";
+import "../../../../../test/mocks/mockCryptoKey";
 import {enableFetchMocks} from "jest-fetch-mock";
 import each from "jest-each";
-import app from "../../app";
-import {User} from "../../model/user";
-import {Keyring} from "../../model/keyring";
+import User from "../../model/user";
+import Keyring from "../../model/keyring";
 import {defaultApiClientOptions} from "../../service/api/apiClient/apiClientOptions.test.data";
-import {RecoverAccountController} from "./recoverAccountController";
-import {AccountAccountRecoveryEntity} from "../../model/entity/account/accountAccountRecoveryEntity";
+import RecoverAccountController from "./recoverAccountController";
+import AccountAccountRecoveryEntity from "../../model/entity/account/accountAccountRecoveryEntity";
 import {defaultAccountAccountRecoveryDto} from "../../model/entity/account/accountAccountRecoveryEntity.test.data";
 import {pgpKeys} from "../../../../../test/fixtures/pgpKeys/keys";
 import {mockApiResponse} from "../../../../../test/mocks/mockApiResponse";
@@ -28,14 +28,16 @@ import {
   approvedAccountRecoveryRequestWithoutPrivateKeyDto,
   approvedAccountRecoveryRequestWithoutResponsesDto
 } from "../../model/entity/accountRecovery/accountRecoveryRequestEntity.test.data";
-import {AccountLocalStorage} from "../../service/local_storage/accountLocalStorage";
-import {InvalidMasterPasswordError} from "../../error/invalidMasterPasswordError";
-import {readKeyOrFail} from "../../utils/openpgp/openpgpAssertions";
-
-jest.mock("../../model/worker");
+import AccountLocalStorage from "../../service/local_storage/accountLocalStorage";
+import InvalidMasterPasswordError from "../../error/invalidMasterPasswordError";
+import {OpenpgpAssertion} from "../../utils/openpgp/openpgpAssertions";
+import SsoDataStorage from "../../service/indexedDB_storage/ssoDataStorage";
+import GenerateSsoKitService from "../../service/sso/generateSsoKitService";
+import {anonymousOrganizationSettings} from "../../model/entity/organizationSettings/organizationSettingsEntity.test.data";
 
 beforeEach(() => {
   enableFetchMocks();
+  jest.clearAllMocks();
 });
 
 describe("RecoverAccountController", () => {
@@ -45,20 +47,26 @@ describe("RecoverAccountController", () => {
     const accountRecoveryRequestDto = approvedAccountRecoveryRequestDto({id: accountRecovery.accountRecoveryRequestId});
     const passphrase = pgpKeys.account_recovery_request.passphrase;
 
+    const mockOrganisationSettings = isSsoEnabled => {
+      const organizationSettings = anonymousOrganizationSettings();
+      if (isSsoEnabled) {
+        organizationSettings.passbolt.plugins.sso = {enabled: true};
+      }
+      fetch.doMockOnce(() => mockApiResponse(organizationSettings, {servertime: Date.now() / 1000}));
+    };
+
     it("Should perform the account recovery.", async() => {
       // Mock API fetch account recovery request get response.
       fetch.doMockOnce(() => mockApiResponse(accountRecoveryRequestDto));
       // Mock API complete request.
       fetch.doMockOnce(() => mockApiResponse());
-      // Mock pagemods to assert the complete start the auth and inform menu pagemods.
-      app.pageMods.WebIntegration.init = jest.fn();
-      app.pageMods.AuthBootstrap.init = jest.fn();
-      app.pageMods.PublicWebsiteSignIn.init = jest.fn();
+      // Mock API organisation settings
+      mockOrganisationSettings();
 
       const controller = new RecoverAccountController(null, null, apiClientOptions, accountRecovery);
       await controller.exec(passphrase);
 
-      expect.assertions(13);
+      expect.assertions(10);
 
       // The user account should have been configured (legacy).
       const user = User.getInstance().get();
@@ -71,19 +79,14 @@ describe("RecoverAccountController", () => {
 
       // The keyring should contain the user recovered key.
       const keyring = new Keyring();
-      const keyringPrivateKey = await readKeyOrFail(keyring.findPrivate().armoredKey);
-      const userPublicKey = await readKeyOrFail(keyring.findPublic(accountRecovery.userId).armoredKey);
+      const keyringPrivateKey = await OpenpgpAssertion.readKeyOrFail(keyring.findPrivate().armoredKey);
+      const userPublicKey = await OpenpgpAssertion.readKeyOrFail(keyring.findPublic(accountRecovery.userId).armoredKey);
       const keyringPrivateKeyFingerprint = keyringPrivateKey.getFingerprint().toUpperCase();
       const userPublicKeyFingerprint = userPublicKey.getFingerprint().toUpperCase();
 
       expect(keyringPrivateKeyFingerprint).toStrictEqual(pgpKeys.ada.fingerprint);
       expect(userPublicKeyFingerprint).toStrictEqual(pgpKeys.ada.fingerprint);
       expect(userPublicKeyFingerprint).toStrictEqual(keyringPrivateKeyFingerprint);
-
-      // The auth and web integration pagemods should have been initialized.
-      expect(app.pageMods.WebIntegration.init).toHaveBeenCalled();
-      expect(app.pageMods.AuthBootstrap.init).toHaveBeenCalled();
-      expect(app.pageMods.PublicWebsiteSignIn.init).toHaveBeenCalled();
 
       // The account recovery should been removed from the account local storage.
       expect(await AccountLocalStorage.get()).toHaveLength(0);
@@ -143,6 +146,59 @@ describe("RecoverAccountController", () => {
       expect.assertions(2);
       await expect(promise).rejects.toThrow("Unable to complete the recover.");
       expect(() => User.getInstance().get()).toThrow("The user is not set");
+    });
+
+    it("Should refresh the SSO kit if SSO is enabled.", async() => {
+      const apiClientOptions = defaultApiClientOptions();
+      const passphrase = pgpKeys.account_recovery_request.passphrase;
+      const accountRecovery = new AccountAccountRecoveryEntity(defaultAccountAccountRecoveryDto());
+      const accountRecoveryRequestDto = approvedAccountRecoveryRequestDto({id: accountRecovery.accountRecoveryRequestId});
+
+      expect.assertions(3);
+      const expetedProvider = "azure";
+      const organizationSettings = anonymousOrganizationSettings();
+      organizationSettings.passbolt.plugins.sso = {enabled: true};
+
+      // Mock API fetch account recovery request get response.
+      fetch.doMockOnce(() => mockApiResponse(accountRecoveryRequestDto));
+      // Mock API complete request.
+      fetch.doMockOnce(() => mockApiResponse());
+      // Mock API organisation settings
+      mockOrganisationSettings(true);
+      // Mock configured SSO settings
+      fetch.doMockOnce(() => mockApiResponse({provider: expetedProvider}));
+
+      jest.spyOn(GenerateSsoKitService, "generate");
+
+      const controller = new RecoverAccountController(null, null, apiClientOptions, accountRecovery);
+      await controller.exec(passphrase);
+
+      expect(SsoDataStorage.flush).toHaveBeenCalled();
+      expect(GenerateSsoKitService.generate).toHaveBeenCalledTimes(1);
+      expect(GenerateSsoKitService.generate).toHaveBeenCalledWith(passphrase, expetedProvider);
+    });
+
+    it("Should only flush SSO kit if SSO is disabled.", async() => {
+      const apiClientOptions = defaultApiClientOptions();
+      const passphrase = pgpKeys.account_recovery_request.passphrase;
+      const accountRecovery = new AccountAccountRecoveryEntity(defaultAccountAccountRecoveryDto());
+      const accountRecoveryRequestDto = approvedAccountRecoveryRequestDto({id: accountRecovery.accountRecoveryRequestId});
+      // Mock API fetch account recovery request get response.
+      fetch.doMockOnce(() => mockApiResponse(accountRecoveryRequestDto));
+      // Mock API complete request.
+      fetch.doMockOnce(() => mockApiResponse());
+      // Mock API organisation settings
+      mockOrganisationSettings();
+
+      jest.spyOn(GenerateSsoKitService, "generate");
+
+      const controller = new RecoverAccountController(null, null, apiClientOptions, accountRecovery);
+      await controller.exec(passphrase);
+
+      expect.assertions(2);
+
+      expect(SsoDataStorage.flush).toHaveBeenCalled();
+      expect(GenerateSsoKitService.generate).not.toHaveBeenCalled();
     });
   });
 });

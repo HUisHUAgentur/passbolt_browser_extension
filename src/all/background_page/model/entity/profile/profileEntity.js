@@ -11,9 +11,10 @@
  * @link          https://www.passbolt.com Passbolt(tm)
  * @since         2.13.0
  */
-const {Entity} = require('../abstract/entity');
-const {EntitySchema} = require('../abstract/entitySchema');
-const {AvatarEntity} = require('../avatar/avatarEntity');
+
+import Entity from "passbolt-styleguide/src/shared/models/entity/abstract/entity";
+import EntitySchema from "passbolt-styleguide/src/shared/models/entity/abstract/entitySchema";
+import AvatarEntity from "../avatar/avatarEntity";
 
 const ENTITY_NAME = 'Profile';
 
@@ -135,10 +136,10 @@ class ProfileEntity extends Entity {
    */
   /**
    * Get profile id
-   * @returns {string} uuid
+   * @returns {string|null} uuid
    */
   get id() {
-    return this._props.id;
+    return this._props.id || null;
   }
 
   /**
@@ -167,10 +168,10 @@ class ProfileEntity extends Entity {
 
   /**
    * Get user id
-   * @returns {string} uuid
+   * @returns {string|null} uuid
    */
   get userId() {
-    return this._props.user_id;
+    return this._props.user_id || null;
   }
 
   /**
@@ -203,4 +204,4 @@ class ProfileEntity extends Entity {
   }
 }
 
-exports.ProfileEntity = ProfileEntity;
+export default ProfileEntity;

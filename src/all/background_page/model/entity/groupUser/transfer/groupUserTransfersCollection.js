@@ -11,10 +11,10 @@
  * @link          https://www.passbolt.com Passbolt(tm)
  * @since         3.0.0
  */
-const {EntityValidationError} = require('../../abstract/entityValidationError');
-const {EntityCollection} = require('../../abstract/entityCollection');
-const {EntitySchema} = require('../../abstract/entitySchema');
-const {GroupUserTransferEntity} = require('./groupUserTransferEntity');
+import GroupUserTransferEntity from "./groupUserTransferEntity";
+import EntityCollection from "passbolt-styleguide/src/shared/models/entity/abstract/entityCollection";
+import EntityValidationError from "passbolt-styleguide/src/shared/models/entity/abstract/entityValidationError";
+import EntitySchema from "passbolt-styleguide/src/shared/models/entity/abstract/entitySchema";
 
 const ENTITY_NAME = 'GroupUserTransfers';
 
@@ -90,4 +90,4 @@ class GroupUserTransfersCollection extends EntityCollection {
   }
 }
 
-exports.GroupUserTransfersCollection = GroupUserTransfersCollection;
+export default GroupUserTransfersCollection;

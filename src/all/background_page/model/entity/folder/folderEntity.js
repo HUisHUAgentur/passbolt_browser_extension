@@ -11,15 +11,15 @@
  * @link          https://www.passbolt.com Passbolt(tm)
  * @since         2.13.0
  */
-const {Entity} = require('../abstract/entity');
-const {EntitySchema} = require('../abstract/entitySchema');
-const {EntityValidationError} = require('../abstract/entityValidationError');
-const {PermissionEntity} = require('../permission/permissionEntity');
-const {PermissionsCollection} = require('../permission/permissionsCollection');
+import Entity from "passbolt-styleguide/src/shared/models/entity/abstract/entity";
+import EntitySchema from "passbolt-styleguide/src/shared/models/entity/abstract/entitySchema";
+import EntityValidationError from "passbolt-styleguide/src/shared/models/entity/abstract/entityValidationError";
+import PermissionEntity from "../permission/permissionEntity";
+import PermissionsCollection from "../permission/permissionsCollection";
 
 const ENTITY_NAME = 'Folder';
 const FOLDER_NAME_MIN_LENGTH = 1;
-const FOLDER_NAME_MAX_LENGTH = 64;
+const FOLDER_NAME_MAX_LENGTH = 256;
 
 class FolderEntity extends Entity {
   /**
@@ -75,8 +75,7 @@ class FolderEntity extends Entity {
             "format": "uuid"
           }, {
             "type": "null"
-          }
-          ]
+          }]
         },
         "name": {
           "type": "string",
@@ -187,7 +186,6 @@ class FolderEntity extends Entity {
   get modified() {
     return this._props.modified || null;
   }
-
 
   /*
    * ==================================================
@@ -362,4 +360,4 @@ class FolderEntity extends Entity {
   }
 }
 
-exports.FolderEntity = FolderEntity;
+export default FolderEntity;

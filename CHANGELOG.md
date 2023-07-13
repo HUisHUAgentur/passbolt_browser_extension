@@ -3,6 +3,318 @@ All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
+## [4.1.0] - 2023-06-21
+
+### Added
+- PB-24169 As an administrator I want to customise what capabilities users are allowed to access on the UI of my organisation
+- PB-24598 SSO allow administrators to remap email/username properties
+
+### Fixed
+- PB-14174 As a user I want the inform menu not to be displayed outside my browser window
+- PB-24657 As a user I should see the triage page even when SSO is misconfigured
+- PB-25031 Fix margin on folder name in the information panel
+
+### Improvement
+- PB-24619 As LU I should see the link on the same line in a paragraph
+- PB-24646 As LU, I should see colored passwords
+
+### Maintenance
+- PB-24622 Put back the rolled-back code for LDAP multi-domain and field-mapping feature
+- PB-24794 Adapt browser extension to not crash when unknown content types are retrieved from the API
+
+### Security
+- PB-23852 PBL-02-002 As a user I should sign-out using POST method
+- PB-24997 Change static images URL to be served from the browser extension instead of the API
+
+## [4.0.4] - 2023-06-07
+### Fixed
+- PB-24932 Fix: As a user I want to be able to sign-in through SSO from the inform menu
+
+## [4.0.3] - 2023-06-05
+### Fixed
+- PB-24734 Fix As a registered user I would like to be able to use SSO login via the quickaccess
+
+## [4.0.1] - 2023-05-17
+### Fixed
+- PB-24639 Fix: As an administrator I want to be see which users have activated MFA from the users workspace
+
+## [4.0.0] - 2023-05-02
+### Added
+- PB-23531 As an administrator I can setup google as SSO provider
+- PB-23532 As a user I can sign-in with SSO
+- PB-23535 As a user I want to self register with SSO enabled
+- PB-23952 As an administrator I want to synchronize only groups belonging to a given parent group
+- PB-24168 As a user I want to use an accessible version of the UI
+
+### Improvements
+- PB-21564 Application should be aware of authentication status as soon as the user is getting signed out
+
+### Fix
+- PB-21488 Fix the loading of pagemods when user data is not set in the local storage
+- PB-23547 As a signed-in user I should auto-filling credentials in iframe even if there is an empty iframe src ahead
+- PB-24076 Fix ApiClient BaseUrl generation to avoid double slashes in the final URL
+- PB-24100 As a developer I want to use a fix working version of storybook
+- PB-24145 As a signed-in user the inform integration should not freeze the browser if there is a lots of dom changes
+- PB-24260 As a signed-in user I should not see a resource stays selected after moves in a folder
+
+### Security
+- PB-22858 As a user the session storage should have a limit of port by tab
+- PB-22859 As a user the web integration pagemod should be attached only on top frame
+- PB-23556 PBL-08-002 WP2: Passphrase Retained In Memory Post-Logout
+- PB-23942 PBL-08-008 WP2: Lack of explicit CSP on extension manifest
+- PB-23797 Backport MV3 port manager on MV2 without using the webNavigation permission
+
+### Maintenance
+- PB-18667 Migrate gpgAuth session check loop into a dedicated service startLoopAuthSessionCheckService
+- PB-22641 As a user the browser extension should handle when the version is updated
+- PB-22642 As a developer, when inform call to action and inform menu are destroyed, I should remove the port reference in the session storage and portManager
+- PB-24105 As a user I want to trigger file download on firefox with file pagemod
+- PB-24131 As a developer I should have class files in the correct folder
+- PB-24134 As a developer I should be able to run the CI pipeline even if the audit job is failing
+- PB-24147 Remove legacy entry point to check if the user is authenticated
+
+## [3.12.1] - 2023-03-29
+### Fix
+- PB-23930 Fix the removal of the SSO kit on CSRF token error
+- PB-23949 Fix as a user I should be able to use uppercase characters for username
+- PB-24041 Fix missing import XRegExp
+- PB-24065 Fix to prevent the browser extension from crashing if the server is configured with an unsupported SSO provider
+
+## [3.12.0] - 2023-03-15
+### Added
+- PB-22521 As a signed-in user, I want to export resources in logmeonce csv
+- PB-22520 As a signed-in user, I want to export resources in nordpass csv
+- PB-22519 As a signed-in user, I want to export resources in dashlane csv
+- PB-22518 As a signed-in user, I want to export resources in safari csv format
+- PB-22517 As a signed-in user, I want to export resources in mozilla csv
+- PB-22515 As a signed-in user, I want to export resources in bitwarden csv
+- PB-22516 As a signed-in user, I want to export resources in chromium based browsers csv
+- PB-22838 As an administrator I can customise the application email validation
+
+### Improvements
+- PB-22896 Improve DUO style
+
+### Fix
+- PB-23281 Fix as a user I should see an accurate entropy when a password contain words from a dictionary
+- PB-23541 As a user I can use SSO recover when Passbolt is served from a subfolder
+
+### Security
+- PB-23706 As an administrator I should be the only one to know which users have enabled MFA
+
+
+## [3.11.2] - 2023-03-03
+### Security
+- PB-23328 - PBL-08-001 WP2 Credentials Leakage via Clickjacking - As a signed-in user I should not be able to open the application iframe in an untrusted parent frame
+- PB-23327 - PBL-08-001 WP2 Credentials Leakage via Clickjacking - As a signed-in user I should not be able to open the quickaccess in an iframe
+
+## [3.11.1] - 2023-02-27
+### Added
+- PB-22081 As a signed-in user I can import my passwords from a Mozilla web browsers csv export
+- PB-22082 As a signed-in user I can import my passwords from Safari web browser csv export
+- PB-22116 As a signed-in user I can import my passwords from a Dashlane csv export
+- PB-22117 As a signed-in user I can import my passwords from a Nordpass csv export
+- PB-22510 As a signed-in user I can import my passwords from a LogMeOnce csv export
+- PB-22866 As a user I want to use passbolt in Italian
+- PB-22866 As a user I want to use passbolt in Portuguese (Brazil)
+- PB-22866 As a user I want to use passbolt in Korean
+- PB-22866 As a user I want to use passbolt in Romanian
+- PB-22882 As a user I can use the SSO feature to speed up the extension configuration process
+
+### Improved
+- PB-21408 As a logged-in user navigating to the account recovery user settings from the MFA user settings I should not see the screen blinking
+- PB-21548 As a signed-in user I can access my MFA settings for a given provider following a dedicated route
+- PB-22647 As a signed-in user I want to use my personal google email server as SMTP server
+- PB-22699 A a user I want a unified experience using pwned password feature
+- PB-22725 As a signed-in user I want to see an introduction screen prior setting up Duo v4
+- PB-22835 As an administrator I can define the optional SMTP Settings “client” setting
+- PB-22861 As an administrator I want to manage Duo v4 settings
+
+### Fixed
+- PB-22387 As an administrator generating an account recovery organization key, I should see the warning banner after submitting the form
+- PB-22587 Fix the CSV exports columns presence and order
+- PB-22588 As a signed-in user I want to import resources in Lastpass csv export following their conventions
+- PB-22701 As a signed-in user I should not see the MFA mandatory dialog if there are no MFA providers enabled for my organization
+- PB-22704 As a user with a configured account and SSO, I should be able to recover/setup another account
+- PB-23277 As a signed-in user I should not have a 404 error with the flag mfa policy disable
+
+### Security
+- PB-21645 As content code application I should be restricted to open ports only for applications I am allowed to open
+- PB-21754 As a user I should not see any trace of previously downloaded content in my history
+- PB-23279 As a user completing a setup I should not have access to the background page decryption secret capabilities
+
+### Maintenance
+PB-19641 Handle the setup and recover runtime object
+- PB-19675 As a signed-in user I want to perform a recover using the browser extension with MV3
+- PB-19676 As a signed-in user I want to perform a setup using the browser extension with mv3
+- PB-19677 As a signed-in user I want to perform a sign-in using the browser extension with MV3
+- PB-19678 As a signed-in user I want to start the application using the browser extension with mv3
+- PB-21750 As service worker I should be able to wake up a disconnected application port
+- PB-21822 As a signed-in user I want to open quickaccess using the browser extension with MV3
+- PB-21823 As a signed-in user I want to see the web integration using the browser extension with MV3
+- PB-21824 As a signed-in user I want to see the web public sign in using the browser extension with MV3
+- PB-21829 Clean port after a web navigation on the main frame
+- PB-21996 As a signed-in user I want to see the in form call to action using the browser extension with MV3
+- PB-21997 As a signed-in user I want to see the in form menu using the browser extension with MV3
+- PB-22009 Create a service to parse the webIntegration in url
+- PB-22076 Handle flush local storage on browser runtime onStartUp for MV3
+- PB-22077 Handle config init and post logout on service worker startup
+- PB-22078 Create a polyfill to handle browser.action on MV2
+- PB-22113 As a signed-in user I should be able to open the quickaccess popup from inform menu with MV3
+- PB-22412 As a signed-in user I want to use account recovery process using the browser extension with MV3
+- PB-22648 Adapt payload when back return duo settings
+- PB-22896 Update styles to adapt to Duo forms updates
+- PB-22898 Update login form design styles
+
+## [3.10.0] - 2023-02-09
+### Added
+- PB-21752 As an anonymous user I can self register if the organization allows my email domain
+- PB-21999 As a signed-in administrator I can force users to authenticate with MFA at each sign-in
+- PB-22000 As a signed-in administrator I can force users to enable MFA
+- PB-22080 As a signed-in user I should be able to import chromium based browsers csv
+- PB-21874 As signed-in user I should be able to import bitwarden csv
+
+### Improved
+- PB-21910 As a signed-in administrator on the self registration admin settings form I want to see the domain warnings while typing and not after blur event
+- PB-22007 As a user finalizing my account recovery I should be able to authenticate with SSO after my first sign out
+- PB-22619 As a user authenticating with SSO, I should close the SSO popup when I am navigating away in the main frame
+- PB-22617 As a user authentication with SSO, closing the third party popup should not redirect me to the passphrase screen
+
+### Fixed
+- PB-18371 Fix contextual menu positioning issue when right clicking at the bottom of the page
+- PB-22386 As an administrator I want to know if the weak passphrase I am entering to generate an organization recovery key has been pwned
+- PB-22387 As an administrator generating an account recovery organization key, I should see the warning banner after submitting the form
+- PB-22388 Fix as a user recovering my account i should not see that the passphrase i entered has been pwned if it is not the valid passphrase
+- PB-22084 As a signed-in user I can import my passwords from 1Password csv export with their new header conventions
+
+### Maintenance
+- PB-21562 Refactor service worker port and add coverage
+- PB-21813 Unit test the private key's passphrase rotation SSO kit regeneration
+- PB-21878 Unit test the user stories related to SSO via quickaccess
+- PB-21932 Unit test: As AD I want my SSO kit to be generated when saving a new SSO settings
+- PB-21933 Create a service to parse the sign in url
+- PB-22337 Merge both controller AuthController and AuthSignInController to keep consistency
+- PB-22353 Remove redundant toDto function in SsoClientPartEntity
+- PB-22403 Instead of using new URL when getting sso url login, use an entity to ensure consistency and that the data is validated
+- PB-22478 As a developer I should be sure my changes don’t introduce regression in the build
+- PB-22479 As a developer I should be sure my changes don't introduce dependency vulnerabilities
+- PB-22614 Avoid telemetries to be sent to Storybook
+- PB-22630 Fix the Unit test in the browser extension about  method that shouldn't be called
+
+## [3.9.2] - 2023-01-31
+### Fixed
+- PB-22557: As LU I should be able to download file on chromium based browsers
+
+## [3.9.0] - 2023-01-18
+### Added
+- PB-21383 As AD I can save the SSO server settings
+- PB-21383 As AD I can disable the SSO server settings
+- PB-21393 As a registered user I can use the SSO feature to sign in to passbolt
+- PB-21400 As LU I can rotate my private key's passphrase and still be able to sign in via SSO
+- PB-21735 As a signed-in administrator in the administrator workspace, I can see the user
+self registration settings option in the left-side bar
+- PB-21740 As a signed-in administrator I can remove a domain from the user self registration list
+- PB-21767 As AN I want to have the SSO login displayed by default when I have an SSO kit available
+- PB-21768 As AD I want my SSO kit to be generated when saving a new SSO settings if I don't have already one
+- PB-21769 As AN I want to use SSO login from the quickaccess
+- PB-21814 As LU When rotating my passphrase I want to clean my SSO kit on the API
+- PB-21842 As AN I want to have help if I can't remember my passphrase and SSO login is activated
+- PB-21907 As a signed-in on the self registration admin settings form, I want to see the warning message on a row domain even when there are errors on other domains rows
+- PB-21908 As a signed-in administrator on the self registration admin settings form, I should not see an error when I enable the settings which previously were containing error
+- PB-21909 As a signed-in administrator on the self registration admin settings form, I want to see the new row having focus when I click on the add a new row button
+- PB-22006 - As a user finalising my recover I should be able to authenticate with SSO after my first sign out
+
+### Improved
+- PB-21920 As a user I want to use the new PwnedPasswords service when I setup an account, recover an account, change my passphrase or generate a organisation recovery key
+- PB-19793 As a user I want to see a consistent layout while signing-in to passbolt
+- PB-20561 As a user changing my passphrase I would like to see the passphrase field description translated
+- PB-21490 As an administrator I shouldn't see the "save required" banner after saving the SMTP settings
+- PB-20559 As an administrator I want clearer account recovery email notification descriptions relative to administrators
+- PB-21746 As a signed-in user I want to autofill french authentication form using french language as field name
+- PB-21612: Refactor fileController into a dedicated service
+- PB-19156: Replace setInterval by alarm in worker::waitExists
+
+### Fixed
+- PB-19649 As a user sharing a resource/folder, I should be able to see the number of users contained in groups search result
+- PB-21443 As a user on the administration section I would like to see the passbolt logo
+- PB-21476 As signed-in user, I want to copy content in my clipboard using passbolt over http
+- PB-22022 Fix height for the svg Passbolt logo
+
+### Maintenance
+- PB-19054 Remove the usage of the soon the soon unavailable global “window” object
+- PB-19292 As a user I want file downloads to be compatible with MV3 as well
+- PB-19299 Remove the usage of the soon the soon unavailable global “window” object in the unit tests
+- PB-19309 Remove the usage of the soon the soon unavailable global “window” object in the “Random” crypto helper
+- PB-19586 Refactor administration screen actions components
+- PB-19639 Refactor applications port connection bootstrap
+- PB-19650 Handle MV3 port re-connection
+- PB-19657 Add frameId to the ScriptExecution
+- PB-21370 Reduce repository size
+- PB-21435 Bootstrap MV3 service worker
+- PB-21486 Increase code coverage relative to the SMTP authentication method recently added in the SMTP settings admin screen
+- PB-21911 As a developer I want to know the source (author, url, license) of the src/react-extension/lib/Domain/Domains.js list
+
+
+## [3.8.2] - 2022-11-27
+### Fixed
+- PB-21565: As a logged-in user, I should decide to keep my session alive until I sign out
+- PB-21372: As a logged-in user, I should see folders without caret aligned
+
+## [3.8.0] - 2022-11-04
+### Added
+- PB-19151: As a logged-in user, I want to be able to use Solarized light and dark themes
+- PB-19220: As an administrator, I want to manage the organization SMTP settings in the administration workspace
+
+### Improved
+- PB-19229: As an administration, I want to see the passwords I entered in the MFA administration settings forms
+- PB-19226: As a logged-in user, I want to move resources to another folder with better performances
+- PB-19034: As a group manager I should see if there is more than 3 users in a group I'm editing
+- PB-19214: As a logged-in user, I want to see long entities names fitting in dialog
+
+### Fixed
+- PB-19228: As a user, I should see a feedback when the password or description fields content is truncated by a field limit
+- PB-19216: As a logged-in user, I want to populate a form from the Quick Access after the generation of new credentials
+- PB-20978: As a logged-in user, I want to autocomplete using reserved keywords
+
+### Security
+- PB-19537: As a user I want my password fields to be hidden in Passbolt forms when the form is being submitted
+- PB-18639: Restrict the port connection to our extension only for chrome
+
+### Maintenance
+- PB-19237: As a developer, I should see the “change user passphrase” stories in storybook
+- PB-18499: [MV3] Bootstrap MV3 build
+- PB-18600: [MV3] Migrate passphrase “remember me” code into a service
+- PB-18640: [MV3] Use alarms API instead of setTimeout and setInterval
+- PB-18641: [MV3] Use ProgressService instead of ProgressController
+- PB-18649: Use navigator.clipboard API instead of the copy to clipboard iframe mechanism
+- PB-18657: [MV3] Implement a scripting polyfill to ensure scripts and css can be injected with both manifest versions
+- PB-19231: Improve “select” styleguide component unit tests coverage
+- PB-19232: Implement browser extension app url parser
+- PB-19238: Move events create and get to dedicated controllers
+- PB-19558: Run storybook test against CI
+- PB-19586: Create email notifications actions
+
+## [3.7.3] - 2022-09-24
+### Security
+- PB-19090 Ensure we are spell-jacking proof for our input password
+
+## [3.7.2] - 2022-09-13
+### Fixed
+- PB-17158: As LU I want to see an entropy at 0 when the typed passphrase is exposed in a data breach
+- PB-18370: As LU I want to see the user settings yubikey form matching the common form style
+- PB-18417: As AN I want to see the server key change error with the proper design
+- PB-17154: As AD I want to see the input field in user directory UI with the proper design
+
+### Maintenance
+- PB-17720: As AD I wish the account recovery setting page not to refresh infinitely
+- PB-18498: As a developer I wish to build the background page in manifest version 2 with webpack
+
+### Improved
+- PB-16898: As AN I want to the full list of supported browser if I'm not using one
+- PB-18495: As LU I want to see effective date as tooltip of calculated relative date
+- PB-17152: As LU for a first install with chrome, I wish to see the 'eye catcher' with a good contrast
+- PB-18659: As LU I want to be able to give to folder names up to 256 characters
+- PB-17062: As a developer I can customize and test new theme on storybook
+- PB-16946: As a developer I want to have a new theme in Storybook
 
 ## [3.7.1] - 2022-08-11
 ### Fixed
@@ -914,7 +1226,22 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - AP: User with plugin installed
 - LU: Logged in user
 
-[Unreleased]: https://github.com/passbolt/passbolt_browser_extension/compare/v3.7.1...HEAD
+[Unreleased]: https://github.com/passbolt/passbolt_browser_extension/compare/v4.1.0...HEAD
+[4.1.0]: https://github.com/passbolt/passbolt_browser_extension/compare/v4.0.4...v4.1.0
+[4.0.4]: https://github.com/passbolt/passbolt_browser_extension/compare/v4.0.3...v4.0.4
+[4.0.3]: https://github.com/passbolt/passbolt_browser_extension/compare/v4.0.1...v4.0.3
+[4.0.1]: https://github.com/passbolt/passbolt_browser_extension/compare/v4.0.0...v4.0.1
+[4.0.0]: https://github.com/passbolt/passbolt_browser_extension/compare/v3.12.1...v4.0.0
+[3.12.1]: https://github.com/passbolt/passbolt_browser_extension/compare/v3.12.0...v3.12.1
+[3.12.0]: https://github.com/passbolt/passbolt_browser_extension/compare/v3.11.2...v3.12.0
+[3.11.2]: https://github.com/passbolt/passbolt_browser_extension/compare/v3.11.0...v3.11.2
+[3.11.0]: https://github.com/passbolt/passbolt_browser_extension/compare/v3.10.0...v3.11.0
+[3.10.0]: https://github.com/passbolt/passbolt_browser_extension/compare/v3.9.2...v3.10.0
+[3.9.2]: https://github.com/passbolt/passbolt_browser_extension/compare/v3.9.0...v3.9.2
+[3.9.0]: https://github.com/passbolt/passbolt_browser_extension/compare/v3.8.0...v3.9.0
+[3.8.0]: https://github.com/passbolt/passbolt_browser_extension/compare/v3.7.3...v3.8.0
+[3.7.3]: https://github.com/passbolt/passbolt_browser_extension/compare/v3.7.2...v3.7.3
+[3.7.2]: https://github.com/passbolt/passbolt_browser_extension/compare/v3.7.1...v3.7.2
 [3.7.1]: https://github.com/passbolt/passbolt_browser_extension/compare/v3.7.0...v3.7.1
 [3.7.0]: https://github.com/passbolt/passbolt_browser_extension/compare/v3.6.2...v3.7.0
 [3.6.2]: https://github.com/passbolt/passbolt_browser_extension/compare/v3.6.1...v3.6.2

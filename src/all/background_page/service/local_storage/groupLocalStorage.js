@@ -11,12 +11,12 @@
  * @link          https://www.passbolt.com Passbolt(tm)
  * @since         2.13.0
  */
-const {Log} = require('../../model/log');
-const {Lock} = require('../../utils/lock');
+import browser from "../../sdk/polyfill/browserPolyfill";
+import Log from "../../model/log";
+import GroupsCollection from "../../model/entity/group/groupsCollection";
+import GroupEntity from "../../model/entity/group/groupEntity";
+import Lock from "../../utils/lock";
 const lock = new Lock();
-
-const {GroupEntity} = require('../../model/entity/group/groupEntity');
-const {GroupsCollection} = require("../../model/entity/group/groupsCollection");
 
 const GROUP_LOCAL_STORAGE_KEY = 'groups';
 
@@ -177,19 +177,6 @@ class GroupLocalStorage {
       throw new TypeError('GroupLocalStorage expects GroupEntity id to be set');
     }
   }
-
-  /**
-   * Init group local storage
-   */
-  static init() {
-    // Flush the local storage when this library is loaded
-    this.flush();
-
-    // Flush the local storage when the passbolt group session is terminated
-    window.addEventListener("passbolt.auth.after-logout", () => {
-      this.flush();
-    });
-  }
 }
 
-exports.GroupLocalStorage = GroupLocalStorage;
+export default GroupLocalStorage;

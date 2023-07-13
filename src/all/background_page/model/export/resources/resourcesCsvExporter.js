@@ -10,10 +10,18 @@
  * @license       https://opensource.org/licenses/AGPL-3.0 AGPL License
  * @link          https://www.passbolt.com Passbolt(tm)
  */
-const {FileFormatError} = require("../../../error/fileFormatError");
-const {CsvKdbxRowComposer} = require("./csvRowComposer/csvKdbxRowComposer");
-const {Csv1PasswordRowComposer} = require("./csvRowComposer/csv1passwordRowComposer");
-const {CsvLastPassRowComposer} = require("./csvRowComposer/csvLastPassRowComposer");
+import CsvKdbxRowComposer from "./csvRowComposer/csvKdbxRowComposer";
+import Csv1PasswordRowComposer from "./csvRowComposer/csv1passwordRowComposer";
+import CsvLastPassRowComposer from "./csvRowComposer/csvLastPassRowComposer";
+import FileFormatError from "../../../error/fileFormatError";
+import PapaParse from "papaparse";
+import CsvChromiumRowComposer from "./csvRowComposer/csvChromiumRowComposer";
+import CsvBitWardenRowComposer from "./csvRowComposer/csvBitWardenRowComposer";
+import CsvMozillaPlatformRowComposer from "./csvRowComposer/csvMozillaPlatformRowComposer";
+import CsvSafariRowComposer from "./csvRowComposer/csvSafariRowComposer";
+import CsvDashlaneRowComposer from "./csvRowComposer/csvDashlaneRowComposer";
+import CsvNordpassRowComposer from "./csvRowComposer/csvNordpassRowComposer";
+import CsvLogMeOnceRowComposer from "./csvRowComposer/csvLogMeOnceRowComposer";
 
 /**
  * Register of csv row parsers
@@ -22,7 +30,14 @@ const {CsvLastPassRowComposer} = require("./csvRowComposer/csvLastPassRowCompose
 const register = [
   CsvKdbxRowComposer,
   CsvLastPassRowComposer,
-  Csv1PasswordRowComposer
+  Csv1PasswordRowComposer,
+  CsvChromiumRowComposer,
+  CsvBitWardenRowComposer,
+  CsvMozillaPlatformRowComposer,
+  CsvSafariRowComposer,
+  CsvDashlaneRowComposer,
+  CsvNordpassRowComposer,
+  CsvLogMeOnceRowComposer
 ];
 
 class ResourcesCsvExporter {
@@ -83,4 +98,4 @@ class ResourcesCsvExporter {
   }
 }
 
-exports.ResourcesCsvExporter = ResourcesCsvExporter;
+export default ResourcesCsvExporter;

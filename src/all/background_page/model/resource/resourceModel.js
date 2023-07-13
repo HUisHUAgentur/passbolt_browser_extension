@@ -10,19 +10,17 @@
  * @license       https://opensource.org/licenses/AGPL-3.0 AGPL License
  * @link          https://www.passbolt.com Passbolt(tm)
  */
-const {splitBySize} = require("../../utils/array/splitBySize");
-const {ResourceEntity} = require('../entity/resource/resourceEntity');
-const {ResourcesCollection} = require('../entity/resource/resourcesCollection');
-const {ResourceLocalStorage} = require('../../service/local_storage/resourceLocalStorage');
-const {ResourceService} = require('../../service/api/resource/resourceService');
-
-const {PlaintextEntity} = require('../entity/plaintext/plaintextEntity');
-const {PermissionEntity} = require('../entity/permission/permissionEntity');
-const {PermissionsCollection} = require('../entity/permission/permissionsCollection');
-const {PermissionChangesCollection} = require('../entity/permission/change/permissionChangesCollection');
-const {ResourceTypeModel} = require('../../model/resourceType/resourceTypeModel');
-
-const {MoveService} = require('../../service/api/move/moveService');
+import ResourceLocalStorage from "../../service/local_storage/resourceLocalStorage";
+import ResourceTypeModel from "../../model/resourceType/resourceTypeModel";
+import ResourcesCollection from "../entity/resource/resourcesCollection";
+import PermissionEntity from "../entity/permission/permissionEntity";
+import PermissionsCollection from "../entity/permission/permissionsCollection";
+import ResourceEntity from "../entity/resource/resourceEntity";
+import PermissionChangesCollection from "../entity/permission/change/permissionChangesCollection";
+import MoveService from "../../service/api/move/moveService";
+import ResourceService from "../../service/api/resource/resourceService";
+import PlaintextEntity from "../entity/plaintext/plaintextEntity";
+import splitBySize from "../../utils/array/splitBySize";
 
 const BULK_OPERATION_SIZE = 5;
 const MAX_LENGTH_PLAINTEXT = 4096;
@@ -122,9 +120,9 @@ class ResourceModel {
    * @param {ResourceEntity} resource
    * @param {(FolderEntity|null)} parentFolder
    * @param {(FolderEntity|null)} destFolder
-   * @returns {Promise<PermissionChangesCollection>}
+   * @returns {PermissionChangesCollection}
    */
-  async calculatePermissionsChangesForMove(resource, parentFolder, destFolder) {
+  calculatePermissionsChangesForMove(resource, parentFolder, destFolder) {
     let remainingPermissions = new PermissionsCollection([], false);
 
     // Remove permissions from parent if any
@@ -202,6 +200,7 @@ class ResourceModel {
    */
   async findAll(contains, filters, orders, preSanitize) {
     let resourcesDto = await this.resourceService.findAll(contains, filters, orders);
+    resourcesDto = await this.keepResourcesSupported(resourcesDto);
     if (preSanitize) {
       resourcesDto = ResourcesCollection.sanitizeDto(resourcesDto);
     }
@@ -331,6 +330,16 @@ class ResourceModel {
   }
 
   /**
+   * Update resources in the local storage
+   *
+   * @param {ResourcesCollection} resourcesCollection
+   * @returns {Promise<void>}
+   */
+  async updateCollection(resourcesCollection) {
+    await ResourceLocalStorage.updateResourcesCollection(resourcesCollection);
+  }
+
+  /**
    * Delete a resource using Passbolt API and remove the resource from the local storage
    *
    * @param {string} resourceId The resource id
@@ -342,21 +351,14 @@ class ResourceModel {
   }
 
   /**
-   * Move a folder using Passbolt API
+   * Move resources using Passbolt API
    *
-   * @param {string} resourceId the resource id
+   * @param {ResourceEntity} resourceEntity the resource entity
    * @param {(string|null)} folderParentId the folder parent
-   * @returns {ResourceEntity}
    */
-  async move(resourceId, folderParentId) {
-    const resourceDto = await ResourceLocalStorage.getResourceById(resourceId);
-    const resourceEntity = new ResourceEntity(resourceDto);
+  async move(resourceEntity, folderParentId) {
     resourceEntity.folderParentId = folderParentId;
     await this.moveService.move(resourceEntity);
-    // TODO update modified date
-    await ResourceLocalStorage.updateResource(resourceEntity);
-
-    return resourceEntity;
   }
 
   /*
@@ -650,6 +652,17 @@ class ResourceModel {
     }
     return true;
   }
+
+
+  /**
+   * Keep only resources supported with no or known resource type
+   * @param resourcesDto
+   * @return {Promise<*[]>}
+   */
+  async keepResourcesSupported(resourcesDto) {
+    const resourceTypesCollection = await this.resourceTypeModel.getOrFindAll();
+    return resourcesDto.filter(resource => !resource.resource_type_id || resourceTypesCollection.isResourceTypeIdPresent(resource.resource_type_id));
+  }
 }
 
-exports.ResourceModel = ResourceModel;
+export default ResourceModel;

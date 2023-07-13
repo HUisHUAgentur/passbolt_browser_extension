@@ -11,26 +11,23 @@
  * @link          https://www.passbolt.com Passbolt(tm)
  * @since         2.13.0
  */
-const {User} = require('../../model/user');
+import {OpenpgpAssertion} from "../../utils/openpgp/openpgpAssertions";
+import DecryptMessageService from "../../service/crypto/decryptMessageService";
+import User from "../../model/user";
+import ResourceTypeModel from "../../model/resourceType/resourceTypeModel";
+import ResourceModel from "../../model/resource/resourceModel";
+import {PassphraseController as passphraseController} from "../passphrase/passphraseController";
+import GetDecryptedUserPrivateKeyService from "../../service/account/getDecryptedUserPrivateKeyService";
+import FolderModel from "../../model/folder/folderModel";
+import ExternalFoldersCollection from "../../model/entity/folder/external/externalFoldersCollection";
+import ProgressService from "../../service/progress/progressService";
+import ResourcesExporter from "../../model/export/resourcesExporter";
+import ExternalResourcesCollection from "../../model/entity/resource/external/externalResourcesCollection";
+import ExportResourcesFileEntity from "../../model/entity/export/exportResourcesFileEntity";
+import i18n from "../../sdk/i18n";
+import FileService from "../../service/file/fileService";
 
-const progressController = require('../progress/progressController');
-const passphraseController = require('../passphrase/passphraseController');
-const fileController = require('../fileController');
-
-const {ResourcesExporter} = require("../../model/export/resourcesExporter");
-const {ResourceTypeModel} = require("../../model/resourceType/resourceTypeModel");
-const {FolderModel} = require('../../model/folder/folderModel');
-const {ResourceModel} = require('../../model/resource/resourceModel');
-
-const {ExternalResourcesCollection} = require("../../model/entity/resource/external/externalResourcesCollection");
-const {ExternalFoldersCollection} = require("../../model/entity/folder/external/externalFoldersCollection");
-const {ExportResourcesFileEntity} = require("../../model/entity/export/exportResourcesFileEntity");
-
-const {i18n} = require('../../sdk/i18n');
-const {DecryptMessageService} = require("../../service/crypto/decryptMessageService");
-const {GetDecryptedUserPrivateKeyService} = require("../../service/account/getDecryptedUserPrivateKeyService");
-const {readMessageOrFail} = require('../../utils/openpgp/openpgpAssertions');
-
+const INITIAL_PROGRESS_GOAL = 100;
 class ExportResourcesFileController {
   /**
    * ExportResourcesFileController constructor
@@ -45,9 +42,7 @@ class ExportResourcesFileController {
     this.resourceModel = new ResourceModel(clientOptions);
     this.folderModel = new FolderModel(clientOptions);
 
-    // Progress
-    this.progressGoal = 100;
-    this.progress = 0;
+    this.progressService = new ProgressService(this.worker, i18n.t("Exporting ..."));
   }
 
   /**
@@ -58,17 +53,18 @@ class ExportResourcesFileController {
     const userId = User.getInstance().get().id;
 
     try {
+      this.progressService.start(INITIAL_PROGRESS_GOAL, i18n.t("Generate file"));
       const exportEntity = new ExportResourcesFileEntity(exportResourcesFileDto);
       await this.prepareExportContent(exportEntity);
       const privateKey = await this.getPrivateKey();
       await this.decryptSecrets(exportEntity, userId, privateKey);
       await this.export(exportEntity);
       await this.download(exportEntity);
-      await progressController.update(this.worker, this.progressGoal, i18n.t('Generate file'));
-      await progressController.close(this.worker);
+      await this.progressService.finishStep(i18n.t('Done'), true);
+      await this.progressService.close();
       return exportEntity;
     } catch (error) {
-      await progressController.close(this.worker);
+      await this.progressService.close();
       throw error;
     }
   }
@@ -80,8 +76,8 @@ class ExportResourcesFileController {
    */
   async prepareExportContent(exportEntity) {
     const progressGoals = exportEntity.resourcesIds.length + 2; // 1 (initialize & find secrets) + #secrets (to encrypt) + 1 (Complete operation)
-    await progressController.open(this.worker, i18n.t("Exporting ..."), progressGoals, i18n.t('Initialize'));
-    await progressController.update(this.worker, ++this.progress);
+    this.progressService.updateGoals(progressGoals);
+    await this.progressService.finishStep(i18n.t('Initialize'), true);
 
     const foldersCollection = await this.folderModel.getAllByIds(exportEntity.foldersIds);
     const exportFoldersCollection = ExternalFoldersCollection.constructFromFoldersCollection(foldersCollection);
@@ -113,8 +109,8 @@ class ExportResourcesFileController {
     const resourcesTypesCollection = await this.resourceTypeModel.getOrFindAll();
     for (const exportResourceEntity of exportEntity.exportResources.items) {
       i++;
-      await progressController.update(this.worker, ++this.progress, i18n.t('Decrypting {{counter}}/{{total}}', {counter: i, total: exportEntity.exportResources.items.length}));
-      const secretMessage = await readMessageOrFail(exportResourceEntity.secrets.items[0].data);
+      await this.progressService.finishStep(i18n.t('Decrypting {{counter}}/{{total}}', {counter: i, total: exportEntity.exportResources.items.length}));
+      const secretMessage = await OpenpgpAssertion.readMessageOrFail(exportResourceEntity.secrets.items[0].data);
       let secretClear = await DecryptMessageService.decrypt(secretMessage, privateKey);
 
       // @deprecated Prior to v3, resources have no resource type. Remove this condition with v4.
@@ -173,9 +169,9 @@ class ExportResourcesFileController {
     const filename = `passbolt-export-${date}.${exportEntity.fileType}`;
     const mimeType = this.getMimeType(exportEntity.fileType);
     const blobFile = new Blob([exportEntity.file], {type: mimeType});
-    await fileController.saveFile(filename, blobFile, mimeType, this.worker.tab.id);
+    await FileService.saveFile(filename, blobFile, mimeType, this.worker.tab.id);
   }
 }
 
 
-exports.ExportResourcesFileController = ExportResourcesFileController;
+export default ExportResourcesFileController;

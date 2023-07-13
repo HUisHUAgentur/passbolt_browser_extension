@@ -11,12 +11,12 @@
  * @link          https://www.passbolt.com Passbolt(tm)
  * @since         2.13.0
  */
-const {Log} = require('../../model/log');
-const {Lock} = require('../../utils/lock');
+import browser from "../../sdk/polyfill/browserPolyfill";
+import Log from "../../model/log";
+import FolderEntity from "../../model/entity/folder/folderEntity";
+import FoldersCollection from "../../model/entity/folder/foldersCollection";
+import Lock from "../../utils/lock";
 const lock = new Lock();
-
-const {FolderEntity} = require('../../model/entity/folder/folderEntity');
-const {FoldersCollection} = require("../../model/entity/folder/foldersCollection");
 
 const FOLDER_LOCAL_STORAGE_KEY = 'folders';
 
@@ -211,19 +211,6 @@ class FolderLocalStorage {
       throw new TypeError('FolderLocalStorage::set expects FolderEntity permission to be set');
     }
   }
-
-  /**
-   * Init folder local storage
-   */
-  static init() {
-    // Flush the local storage when this library is loaded
-    this.flush();
-
-    // Flush the local storage when the passbolt user session is terminated
-    window.addEventListener("passbolt.auth.after-logout", () => {
-      this.flush();
-    });
-  }
 }
 
-exports.FolderLocalStorage = FolderLocalStorage;
+export default FolderLocalStorage;

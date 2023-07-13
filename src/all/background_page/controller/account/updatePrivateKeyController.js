@@ -11,9 +11,14 @@
  * @link          https://www.passbolt.com Passbolt(tm)
  * @since         3.6.3
  */
-const {AccountModel} = require("../../model/account/accountModel");
-const {User} = require("../../model/user");
-const fileController = require('../fileController');
+import AccountModel from "../../model/account/accountModel";
+import PassphraseStorageService from "../../service/session_storage/passphraseStorageService";
+import FileService from "../../service/file/fileService";
+import OrganizationSettingsModel from "../../model/organizationSettings/organizationSettingsModel";
+import SsoDataStorage from "../../service/indexedDB_storage/ssoDataStorage";
+import SsoKitServerPartModel from "../../model/sso/ssoKitServerPartModel";
+import PassboltApiFetchError from "../../error/passboltApiFetchError";
+import GenerateSsoKitService from "../../service/sso/generateSsoKitService";
 
 const RECOVERY_KIT_FILENAME = "passbolt-recovery-kit.asc";
 
@@ -29,6 +34,8 @@ class UpdatePrivateKeyController {
     this.requestId = requestId;
     this.apiClientOptions = apiClientOptions;
     this.accountModel = new AccountModel(apiClientOptions);
+    this.organisationSettingsModel = new OrganizationSettingsModel(apiClientOptions);
+    this.ssoKitServerPartModel = new SsoKitServerPartModel(apiClientOptions);
   }
 
   /**
@@ -48,17 +55,74 @@ class UpdatePrivateKeyController {
 
   /**
    * Updates the passphrase of the current user's private key and then starts a download of the new key.
-   *
+   * It also generates a new SSO kit if required.
+   * @param {string} oldPassphrase
+   * @param {string} newPassphrase
    * @returns {Promise<void>}
    */
   async exec(oldPassphrase, newPassphrase) {
     if (typeof oldPassphrase !== 'string' || typeof newPassphrase !== 'string') {
       throw new Error('The old and new passphrase have to be string');
     }
-    const userPrivateArmoredKey = await this.accountModel.updatePrivateKey(oldPassphrase, newPassphrase);
-    await User.getInstance().flushMasterPassword();
-    await fileController.saveFile(RECOVERY_KIT_FILENAME, userPrivateArmoredKey, "text/plain", this.worker.tab.id);
+    const organizationSettings = await this.organisationSettingsModel.getOrFind();
+    const ssoIsEnabled = organizationSettings.isPluginEnabled("sso");
+
+    const userPrivateArmoredKey = await this.accountModel.rotatePrivateKeyPassphrase(oldPassphrase, newPassphrase);
+    if (ssoIsEnabled) {
+      await this.regenerateSsoKit(newPassphrase);
+    }
+    await this.accountModel.updatePrivateKey(userPrivateArmoredKey);
+    await PassphraseStorageService.flushPassphrase();
+    if (PassphraseStorageService.isSessionKeptUntilLogOut()) {
+      await PassphraseStorageService.set(newPassphrase);
+    }
+    await FileService.saveFile(RECOVERY_KIT_FILENAME, userPrivateArmoredKey, "text/plain", this.worker.tab.id);
+  }
+
+  /**
+   * Handles the generation of a new SSO kit.
+   * @param {string} newPassphrase
+   * @returns {Promise<void>}
+   */
+  async regenerateSsoKit(newPassphrase) {
+    let currentKit;
+    try {
+      currentKit = await SsoDataStorage.get();
+    } catch (e) {
+      console.log(e);
+      return;
+    }
+
+    if (!currentKit) {
+      return;
+    }
+
+    if (currentKit.isRegistered()) {
+      await this.deleteServerPartSsoKit(currentKit.id);
+    }
+
+    const ssoKits = await GenerateSsoKitService.generateSsoKits(newPassphrase, currentKit.provider);
+    const registeredServerPartSsoKit = await this.ssoKitServerPartModel.setupSsoKit(ssoKits.serverPart);
+    ssoKits.clientPart.id = registeredServerPartSsoKit.id;
+    await SsoDataStorage.save(ssoKits.clientPart);
+  }
+
+  /**
+   * Tries to delete the server part SSO kit id if any.
+   * If the kit doesn't exist on the server, it ignores the deletion silently.
+   * @param {uuid} ssoKitId
+   * @private
+   */
+  async deleteServerPartSsoKit(ssoKitId) {
+    try {
+      await this.ssoKitServerPartModel.deleteSsoKit(ssoKitId);
+    } catch (e) {
+      // we assume that the kit might have been remove from the server already
+      if (!(e instanceof PassboltApiFetchError && e?.data?.code === 404)) {
+        throw e;
+      }
+    }
   }
 }
 
-exports.UpdatePrivateKeyController = UpdatePrivateKeyController;
+export default UpdatePrivateKeyController;

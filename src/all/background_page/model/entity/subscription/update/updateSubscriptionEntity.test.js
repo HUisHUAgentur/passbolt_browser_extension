@@ -11,9 +11,9 @@
  * @link          https://www.passbolt.com Passbolt(tm)
  * @since         2.13.0
  */
-import {UpdateSubscriptionEntity} from "./updateSubscriptionEntity";
-import {EntitySchema} from "../../abstract/entitySchema";
-import {EntityValidationError} from "../../abstract/entityValidationError";
+import UpdateSubscriptionEntity from "./updateSubscriptionEntity";
+import EntitySchema from "passbolt-styleguide/src/shared/models/entity/abstract/entitySchema";
+import EntityValidationError from "passbolt-styleguide/src/shared/models/entity/abstract/entityValidationError";
 
 describe("Update subscription entity", () => {
   it("schema must validate", () => {

@@ -11,10 +11,10 @@
  * @link          https://www.passbolt.com Passbolt(tm)
  * @since         3.6.0
  */
-const {Entity} = require('../abstract/entity');
-const {EntitySchema} = require('../abstract/entitySchema');
-const {AuthenticationTokenEntity} = require("../authenticationToken/authenticationTokenEntity");
-const {AccountRecoveryRequestEntity} = require("./accountRecoveryRequestEntity");
+import Entity from "passbolt-styleguide/src/shared/models/entity/abstract/entity";
+import EntitySchema from "passbolt-styleguide/src/shared/models/entity/abstract/entitySchema";
+import AccountRecoveryRequestEntity from "./accountRecoveryRequestEntity";
+import AuthenticationTokenEntity from "../authenticationToken/authenticationTokenEntity";
 
 const ENTITY_NAME = 'AccountRecoveryRequestCreate';
 
@@ -126,4 +126,4 @@ class AccountRecoveryRequestCreateEntity extends Entity {
   }
 }
 
-exports.AccountRecoveryRequestCreateEntity = AccountRecoveryRequestCreateEntity;
+export default AccountRecoveryRequestCreateEntity;

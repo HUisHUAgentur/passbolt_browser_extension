@@ -11,9 +11,9 @@
  * @link          https://www.passbolt.com Passbolt(tm)
  * @since         3.0.0
  */
-import {GroupUserTransferEntity} from "./groupUserTransferEntity";
-import {EntitySchema} from "../../abstract/entitySchema";
-import {EntityValidationError} from "../../abstract/entityValidationError";
+import GroupUserTransferEntity from "./groupUserTransferEntity";
+import EntitySchema from "passbolt-styleguide/src/shared/models/entity/abstract/entitySchema";
+import EntityValidationError from "passbolt-styleguide/src/shared/models/entity/abstract/entityValidationError";
 
 describe("GroupUser transfer entity", () => {
   it("schema must validate", () => {

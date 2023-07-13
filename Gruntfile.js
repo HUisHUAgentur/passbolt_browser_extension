@@ -15,29 +15,28 @@ module.exports = function (grunt) {
     node_modules: 'node_modules/',
 
     build: 'build/all/',
-    build_data: 'build/all/data/',
-    build_vendors: 'build/all/vendors/',
-    build_content_scripts: 'build/all/content_scripts/',
-    build_web_accessible_resources: 'build/all/web_accessible_resources/',
+    build_web_accessible_resources: 'build/all/webAccessibleResources/',
 
     dist_chrome: 'dist/chrome/',
+    dist_chrome_mv3: 'dist/chrome-mv3/',
     dist_firefox: 'dist/firefox/',
 
     src: 'src/all/',
     test: 'test/',
     src_background_page: 'src/all/background_page/',
-    src_background_page_vendors: 'src/all/background_page/vendors/',
     src_chrome: 'src/chrome/',
-    src_content_vendors: 'src/all/data/vendors/',
+    src_chrome_mv3: 'src/chrome-mv3/',
     src_firefox: 'src/firefox/',
-    src_content_scripts: 'src/all/content_scripts/',
-    src_web_accessible_resources: 'src/all/web_accessible_resources/'
+    src_content_scripts: 'src/all/contentScripts/',
+    src_web_accessible_resources: 'src/all/webAccessibleResources/',
   };
+  const firefoxWebExtBuildName = 'passbolt_-_open_source_password_manager';
 
   /**
    * Import package.json file content
    */
   var pkg = grunt.file.readJSON('package.json');
+  var manifestVersion =  pkg.version.replace(/-.*$/,'');
 
   /**
    * Load and enable Tasks
@@ -46,28 +45,29 @@ module.exports = function (grunt) {
   grunt.loadNpmTasks('grunt-contrib-clean');
   grunt.loadNpmTasks('grunt-contrib-copy');
   grunt.loadNpmTasks('grunt-contrib-watch');
-  grunt.loadNpmTasks('grunt-browserify');
 
   grunt.registerTask('default', ['bundle']);
-  grunt.registerTask('pre-dist', ['copy:vendors', 'copy:styleguide']);
+  grunt.registerTask('pre-dist', ['copy:styleguide']);
 
-  grunt.registerTask('bundle', ['externalize-locale-strings', 'copy:background_page', 'copy:content_scripts', 'browserify:background_page', 'copy:data', 'copy:locales']);
-  grunt.registerTask('bundle-firefox', ['copy:manifest_firefox', 'bundle', 'browserify:vendors']);
-  grunt.registerTask('bundle-chrome', ['copy:manifest_chrome', 'bundle', 'browserify:vendors']);
+  grunt.registerTask('bundle', ['externalize-locale-strings', 'copy:background_page', 'copy:web_accessible_resources', 'copy:locales']);
+  grunt.registerTask('bundle-firefox', ['copy:manifest_firefox', 'bundle']);
+  grunt.registerTask('bundle-chrome', ['copy:manifest_chrome', 'bundle']);
+  grunt.registerTask('bundle-mv3', ['externalize-locale-strings', 'copy:service_worker', 'copy:web_accessible_resources', 'copy:locales']);
+  grunt.registerTask('bundle-chrome-mv3', ['copy:manifest_chrome_mv3', 'bundle-mv3']);
 
-  grunt.registerTask('build', ['shell:eslint', 'shell:test', 'build-firefox', 'build-chrome']);
+  grunt.registerTask('build', ['build-firefox-prod', 'build-chrome-prod']);
 
   grunt.registerTask('build-firefox', ['build-firefox-debug', 'build-firefox-prod']);
-  grunt.registerTask('build-firefox-debug', ['clean:build', 'pre-dist', 'copy:config_debug', 'bundle-firefox', 'shell:build_webpack_apps_debug', 'shell:build_firefox_debug']);
-  grunt.registerTask('build-firefox-prod', ['clean:build', 'pre-dist', 'copy:config_default', 'bundle-firefox', 'shell:build_webpack_apps_prod', 'shell:build_firefox_prod']);
+  grunt.registerTask('build-firefox-debug', ['clean:build', 'pre-dist', 'copy:config_debug', 'bundle-firefox', 'shell:build_background_page_debug', 'shell:build_content_script_debug', 'shell:build_web_accessible_resources_debug', 'shell:build_firefox_debug']);
+  grunt.registerTask('build-firefox-prod', ['clean:build', 'pre-dist', 'copy:config_default', 'bundle-firefox', 'shell:build_background_page_prod', 'shell:build_content_script_prod', 'shell:build_web_accessible_resources_prod', 'shell:build_firefox_prod']);
 
   grunt.registerTask('build-chrome', ['build-chrome-debug', 'build-chrome-prod']);
-  grunt.registerTask('build-chrome-debug', ['clean:build', 'pre-dist', 'copy:config_debug', 'bundle-chrome', 'shell:build_webpack_apps_debug', 'shell:build_chrome_debug']);
-  grunt.registerTask('build-chrome-prod', ['clean:build', 'pre-dist', 'copy:config_default', 'bundle-chrome', 'shell:build_webpack_apps_prod', 'shell:build_chrome_prod']);
+  grunt.registerTask('build-chrome-debug', ['clean:build', 'pre-dist', 'copy:config_debug', 'bundle-chrome', 'shell:build_background_page_debug', 'shell:build_content_script_debug', 'shell:build_web_accessible_resources_debug', 'shell:build_chrome_debug']);
+  grunt.registerTask('build-chrome-prod', ['clean:build', 'pre-dist', 'copy:config_default', 'bundle-chrome', 'shell:build_background_page_prod', 'shell:build_content_script_prod', 'shell:build_web_accessible_resources_prod', 'shell:build_chrome_prod']);
 
-  grunt.registerTask('custom-chrome-debug', ['bg-chrome-debug', 'react-chrome-debug']);
-  grunt.registerTask('bg-chrome-debug', ['copy:background_page', 'browserify:background_page']);
-  grunt.registerTask('react-chrome-debug', ['copy:content_scripts', 'copy:data', 'copy:locales', 'shell:build_webpack_apps_debug']);
+  grunt.registerTask('build-chrome-mv3', ['build-chrome-mv3-debug', 'build-chrome-mv3-prod']);
+  grunt.registerTask('build-chrome-mv3-debug', ['clean:build', 'pre-dist', 'copy:config_debug', 'bundle-chrome-mv3', 'shell:build_service_worker_debug', 'shell:build_content_script_debug', 'shell:build_web_accessible_resources_debug', 'shell:build_chrome_mv3_debug']);
+  grunt.registerTask('build-chrome-mv3-prod', ['clean:build', 'pre-dist', 'copy:config_default', 'bundle-chrome-mv3', 'shell:build_service_worker_prod', 'shell:build_content_script_prod', 'shell:build_web_accessible_resources_prod', 'shell:build_chrome_mv3_prod']);
 
   grunt.registerTask('externalize-locale-strings', ['shell:externalize']);
 
@@ -76,22 +76,6 @@ module.exports = function (grunt) {
     */
   grunt.initConfig({
     pkg: grunt.file.readJSON('package.json'),
-
-    /**
-     * Browserify is a tool to package CommonJS Javascript code for use in the browser.
-     * We use CommonJS require syntax to manage dependencies in the web extension add-on code
-     * See also. src/background_page/vendor/require_polyfill.js
-     */
-    browserify: {
-      vendors: {
-        src: [path.src_background_page + 'vendors.js'],
-        dest: path.build + 'vendors.min.js'
-      },
-      background_page: {
-        src: [path.src_background_page + 'index.js'],
-        dest: path.build + 'index.min.js'
-      }
-    },
 
     /**
      * Clean operations
@@ -121,25 +105,25 @@ module.exports = function (grunt) {
           rename: function (dest, src) { console.log(dest + '/config.json'); return dest + '/config.json'; }
         }]
       },
-      content_scripts: {
-        files: [
-          { expand: true, cwd: path.src_content_scripts, src: ['**', '!js/app/**'], dest: path.build_content_scripts }
-        ]
-      },
       background_page: {
         files: [
           { expand: true, cwd: path.src_background_page, src: 'index.html', dest: path.build }
         ]
       },
-      data: {
+      service_worker: {
         files: [
-          { expand: true, cwd: path.src + 'data', src: ['js/themes/**', '*.html'], dest: path.build_data }
+          { expand: true, cwd: path.src_chrome_mv3, src: 'serviceWorker.js', dest: path.build + 'serviceWorker' }
+        ]
+      },
+      web_accessible_resources: {
+        files: [
+          { expand: true, cwd: path.src_web_accessible_resources, src: ['js/themes/**', '*.html'], dest: path.build_web_accessible_resources }
         ]
       },
       locales: {
         files: [
           { expand: true, cwd: path.src + 'locales', src: ['**'], dest: path.build + 'locales' },
-          { expand: true, cwd: path.src + '_locales', src: ['**'], dest: path.build + '_locales' }
+          { expand: true, cwd: path.src + '_locales', src: ['**', "!**/*.test.js"], dest: path.build + '_locales' }
         ]
       },
       // switch manifest file to firefox or chrome
@@ -153,12 +137,10 @@ module.exports = function (grunt) {
           expand: true, cwd: path.src_chrome, src: 'manifest.json', dest: path.build
         }]
       },
-      // copy node_modules where needed in addon or content code vendors folder
-      vendors: {
-        files: [
-          // openpgpjs
-          { expand: true, cwd: path.node_modules + 'openpgp/dist', src: ['openpgp.js', 'openpgp.worker.js'], dest: path.build_vendors },
-        ]
+      manifest_chrome_mv3: {
+        files: [{
+          expand: true, cwd: path.src_chrome_mv3, src: 'manifest.json', dest: path.build
+        }]
       },
       // Copy styleguide elements
       styleguide: {
@@ -167,7 +149,7 @@ module.exports = function (grunt) {
           nonull: true,
           cwd: path.node_modules + 'passbolt-styleguide/src/img/avatar',
           src: ['user.png', 'group_default.png'],
-          dest: path.build_data + 'img/avatar',
+          dest: path.build_web_accessible_resources + 'img/avatar',
           expand: true
         }, {
           // Controls
@@ -179,7 +161,7 @@ module.exports = function (grunt) {
             'chevron-right_white.svg', 'chevron-down_black.svg', 'chevron-down_white.svg', 'chevron-down_blue.svg',
             'success.svg', 'fail.svg', 'warning.svg'
           ],
-          dest: path.build_data + 'img/controls',
+          dest: path.build_web_accessible_resources + 'img/controls',
           expand: true
         }, {
           // Icons / logo
@@ -197,7 +179,7 @@ module.exports = function (grunt) {
             'icon-badge-5.svg',
             'icon-badge-5+.svg',
           ],
-          dest: path.build_data + 'img/logo',
+          dest: path.build_web_accessible_resources + 'img/logo',
           expand: true
         }, {
           // Branding
@@ -217,21 +199,28 @@ module.exports = function (grunt) {
             'icon-48.png',
             'icon-64.png',
             'icon-128.png'],
-          dest: path.build + 'icons',
+          dest: path.build_web_accessible_resources + 'img/icons',
           expand: true
         }, {
           // Illustrations
           nonull: true,
           cwd: path.node_modules + 'passbolt-styleguide/src/img/illustrations',
           src: ['passphrase_intro.svg', 'pin_passbolt.gif', 'wave-pin_my_extension.svg', 'email.png'],
-          dest: path.build_data + 'img/illustrations',
+          dest: path.build_web_accessible_resources + 'img/illustrations',
           expand: true
         }, {
           // Third party logos
           nonull: true,
           cwd: path.node_modules + 'passbolt-styleguide/src/img/third_party',
-          src: ['ChromeWebStore.png', 'firefox_logo-white.png', 'firefox_logo-black.png', 'gnupg_logo.png', 'gnupg_logo_disabled.png', 'appstore.svg', 'playstore.svg'],
-          dest: path.build_data + 'img/third_party',
+          src: ['ChromeWebStore.png', 'gnupg_logo.png', 'gnupg_logo_disabled.png', 'appstore.svg', 'playstore.svg'],
+          dest: path.build_web_accessible_resources + 'img/third_party',
+          expand: true
+        }, {
+          // theme preview images
+          nonull: true,
+          cwd: path.node_modules + 'passbolt-styleguide/src/img/themes',
+          src: ['default.png', 'midgar.png', 'solarized_dark.png', 'solarized_light.png'],
+          dest: path.build_web_accessible_resources + 'img/themes',
           expand: true
         }, {
           // CSS files default
@@ -241,7 +230,7 @@ module.exports = function (grunt) {
             'ext_setup.min.css', 'ext_quickaccess.min.css', 'ext_app.min.css', 'ext_authentication.min.css',
             'ext_in_form_menu.min.css'
           ],
-          dest: path.build_data + 'css/themes/default',
+          dest: path.build_web_accessible_resources + 'css/themes/default',
           expand: true
         }, {
           // CSS files midgar
@@ -250,19 +239,37 @@ module.exports = function (grunt) {
             'ext_login.min.css', 'ext_in_form_cta.min.css', 'ext_setup.min.css', 'ext_quickaccess.min.css',
             'ext_app.min.css', 'ext_authentication.min.css', 'ext_in_form_menu.min.css'
           ],
-          dest: path.build_data + 'css/themes/midgar',
+          dest: path.build_web_accessible_resources + 'css/themes/midgar',
+          expand: true
+        }, {
+          // CSS files solarized light
+          cwd: path.node_modules + 'passbolt-styleguide/build/css/themes/solarized_light',
+          src: [
+            'ext_login.min.css', 'ext_in_form_cta.min.css', 'ext_setup.min.css', 'ext_quickaccess.min.css',
+            'ext_app.min.css', 'ext_authentication.min.css', 'ext_in_form_menu.min.css'
+          ],
+          dest: path.build_web_accessible_resources + 'css/themes/solarized_light',
+          expand: true
+        }, {
+          // CSS files solarized dark
+          cwd: path.node_modules + 'passbolt-styleguide/build/css/themes/solarized_dark',
+          src: [
+            'ext_login.min.css', 'ext_in_form_cta.min.css', 'ext_setup.min.css', 'ext_quickaccess.min.css',
+            'ext_app.min.css', 'ext_authentication.min.css', 'ext_in_form_menu.min.css'
+          ],
+          dest: path.build_web_accessible_resources + 'css/themes/solarized_dark',
           expand: true
         }, {
           // Fonts
           cwd: path.node_modules + 'passbolt-styleguide/src/fonts',
           src: ['opensans-bold.woff', 'opensans-regular.woff', 'passbolt.ttf'],
-          dest: path.build_data + 'fonts',
+          dest: path.build_web_accessible_resources + 'fonts',
           expand: true
         }, {
           // Locales
           cwd: path.node_modules + 'passbolt-styleguide/src/locales',
           src: ['**'],
-          dest: path.build_data + 'locales',
+          dest: path.build_web_accessible_resources + 'locales',
           expand: true
         }]
       }
@@ -273,32 +280,81 @@ module.exports = function (grunt) {
      */
     shell: {
       options: { stderr: false },
-
       /**
-       * Build content code apps.
+       * Build background page.
        */
-      build_webpack_apps_prod: {
+      build_background_page_prod: {
         command: [
-          'webpack --config webpack-content-scripts.config.js',
-          'webpack --config webpack-data.config.js',
-          'webpack --config webpack-content-scripts.browser-integration.config.js',
-          'webpack --config webpack-content-scripts.public-website-sign-in.config.js',
-          'webpack --config webpack-data.in-form-call-to-action.config.js',
-          'webpack --config webpack-data.in-form-menu.config.js',
-          'webpack --config webpack-data.clipboard.config.js',
-          'webpack --config webpack-data.download.config.js'
+          'npm run build:background-page'
         ].join(' && ')
       },
-      build_webpack_apps_debug: {
+      build_background_page_debug: {
         command: [
-          'webpack --env debug=true --config webpack-content-scripts.config.js',
-          'webpack --env debug=true --config webpack-data.config.js',
-          'webpack --env debug=true --config webpack-content-scripts.browser-integration.config.js',
-          'webpack --env debug=true --config webpack-content-scripts.public-website-sign-in.config.js',
-          'webpack --env debug=true --config webpack-data.in-form-call-to-action.config.js',
-          'webpack --env debug=true --config webpack-data.in-form-menu.config.js',
-          'webpack --env debug=true --config webpack-data.clipboard.config.js',
-          'webpack --env debug=true --config webpack-data.download.config.js'
+          'npm run dev:build:background-page'
+        ].join(' && ')
+      },
+      /**
+       * Build service worker.
+       */
+      build_service_worker_prod: {
+        command: [
+          'npm run build:service-worker'
+        ].join(' && ')
+      },
+      build_service_worker_debug: {
+        command: [
+          'npm run dev:build:service-worker'
+        ].join(' && ')
+      },
+      /**
+       * Build content script
+       */
+      build_content_script_prod: {
+        command: [
+          'npm run build:content-scripts'
+        ].join(' && ')
+      },
+      build_content_script_debug: {
+        command: [
+          'npm run dev:build:content-scripts'
+        ].join(' && ')
+      },
+      build_content_script_app: {
+        command: [
+          'npm run dev:build:content-scripts:app'
+        ].join(' && ')
+      },
+      build_content_script_browser_integration: {
+        command: [
+          'npm run dev:build:content-scripts:browser-integration'
+        ].join(' && ')
+      },
+      build_content_script_public_website: {
+        command: [
+          'npm run dev:build:content-scripts:public-website'
+        ].join(' && ')
+      },
+      /**
+       * Build web accessible resources
+       */
+      build_web_accessible_resources_prod: {
+        command: [
+          'npm run build:web-accessible-resources'
+        ].join(' && ')
+      },
+      build_web_accessible_resources_debug: {
+        command: [
+          'npm run dev:build:web-accessible-resources'
+        ].join(' && ')
+      },
+      build_web_accessible_resources_app: {
+        command: [
+          'npm run dev:build:web-accessible-resources:app'
+        ].join(' && ')
+      },
+      build_web_accessible_resources_browser_integration: {
+        command: [
+          'npm run dev:build:web-accessible-resources:browser-integration'
         ].join(' && ')
       },
       // Execute the externalization command
@@ -331,7 +387,7 @@ module.exports = function (grunt) {
         },
         command: [
           './node_modules/.bin/web-ext build -s=' + path.build + ' -a=' + path.dist_firefox + '  -o=true',
-          'mv ' + path.dist_firefox + pkg.name + '-' + pkg.version + '.zip ' + path.dist_firefox + 'passbolt-' + pkg.version + '-debug.zip',
+          'mv ' + path.dist_firefox + firefoxWebExtBuildName + '-' + manifestVersion + '.zip ' + path.dist_firefox + 'passbolt-' + pkg.version + '-debug.zip',
           'rm -f ' + path.dist_firefox + 'passbolt-latest@passbolt.com.zip',
           'ln -fs passbolt-' + pkg.version + '-debug.zip ' + path.dist_firefox + 'passbolt-latest@passbolt.com.zip',
           "echo '\nMoved to " + path.dist_firefox + "passbolt-" + pkg.version + "-debug.zip'"
@@ -343,7 +399,7 @@ module.exports = function (grunt) {
         },
         command: [
           './node_modules/.bin/web-ext build -s=' + path.build + ' -a=' + path.dist_firefox + '  -o=true',
-          'mv ' + path.dist_firefox + pkg.name + '-' + pkg.version + '.zip ' + path.dist_firefox + '/passbolt-' + pkg.version + '.zip',
+          'mv ' + path.dist_firefox + firefoxWebExtBuildName + '-' + manifestVersion + '.zip ' + path.dist_firefox + '/passbolt-' + pkg.version + '.zip',
           "echo '\nMoved to " + path.dist_firefox + "passbolt-" + pkg.version + ".zip'"
         ].join(' && ')
       },
@@ -370,6 +426,29 @@ module.exports = function (grunt) {
           './node_modules/.bin/crx pack ' + path.build + ' -p key.pem -o ' + path.dist_chrome + 'passbolt-' + pkg.version + '.crx ',
           "echo '\nZip and Crx files generated in " + path.dist_chrome + "'"
         ].join(' && ')
+      },
+      /**
+       * Chrome MV3
+       */
+      build_chrome_mv3_debug: {
+        options: {
+          stderr: false
+        },
+        command: [
+          './node_modules/.bin/crx pack ' + path.build + ' -p key.pem -o ' + path.dist_chrome_mv3 + 'passbolt-' + pkg.version + '-debug.crx',
+          'rm -f ' + path.dist_chrome_mv3 + 'passbolt-latest@passbolt.com.crx',
+          'ln -fs passbolt-' + pkg.version + '-debug.crx ' + path.dist_chrome_mv3 + 'passbolt-latest@passbolt.com.crx'
+        ].join(' && ')
+      },
+      build_chrome_mv3_prod: {
+        options: {
+          stderr: false
+        },
+        command: [
+          'zip -q -1 -r ' + path.dist_chrome_mv3 + 'passbolt-' + pkg.version + '.zip ' + path.build,
+          './node_modules/.bin/crx pack ' + path.build + ' -p key.pem -o ' + path.dist_chrome_mv3 + 'passbolt-' + pkg.version + '.crx ',
+          "echo '\nZip and Crx files generated in " + path.dist_chrome_mv3 + "'"
+        ].join(' && ')
       }
     },
     /**
@@ -377,24 +456,80 @@ module.exports = function (grunt) {
      * see. https://github.com/gruntjs/grunt-contrib-watch
      */
     watch: {
-      content_scripts: {
-        files: [path.src_content_scripts + '**/*.*'],
-        tasks: ['copy:content_scripts'],
-        options: { spawn: false }
-      },
       background_page: {
-        files: [path.src + 'background_page/**/*.js', '!' + path.src + 'background_page/vendors/*.js', '!' + path.src + 'background_page/vendors.js'],
-        tasks: ['browserify:background_page'],
+        files: [path.src_background_page + '**/*.js', 'node_modules/passbolt-styleguide/src/shared/**/*.js'],
+        tasks: ['shell:build_background_page_debug'],
         options: { spawn: false }
       },
-      config: {
-        files: [path.src + 'background_page/config/config.json'],
-        tasks: ['browserify:background_page'],
+      service_worker: {
+        files: [`${path.src_background_page}**/*.js`, `${path.src_chrome_mv3}**/*.js`],
+        tasks: ['shell:build_service_worker_debug', 'copy:service_worker'],
         options: { spawn: false }
       },
-      vendors: {
-        files: [path.src + 'background_page/vendors.js', path.src + 'background_page/vendors/**/*.js', path.src + 'background_page/sdk/storage.js'],
-        tasks: ['browserify:vendors'],
+      content_script_app: {
+        files: [
+          path.src_content_scripts + 'js/app/AccountRecovery.js',
+          path.src_content_scripts + 'js/app/App.js',
+          path.src_content_scripts + 'js/app/Login.js',
+          path.src_content_scripts + 'js/app/Recover.js',
+          path.src_content_scripts + 'js/app/Setup.js'
+        ],
+        tasks: ['shell:build_content_script_app'],
+        options: { spawn: false }
+      },
+      content_script_browser_integration: {
+        files: [path.src_content_scripts + 'js/app/BrowserIntegration.js'],
+        tasks: ['shell:build_content_script_browser_integration'],
+        options: { spawn: false }
+      },
+      content_script_public_website: {
+        files: [path.src_content_scripts + 'js/app/PublicWebsiteSignIn.js'],
+        tasks: ['shell:build_content_script_public_website'],
+        options: { spawn: false }
+      },
+      web_accessible_resources: {
+        files: [
+          path.src_web_accessible_resources + 'js/themes/*.js',
+          path.src_web_accessible_resources + '*.html'
+        ],
+        tasks: ['copy:web_accessible_resources'],
+        options: { spawn: false }
+      },
+      web_accessible_resources_app: {
+        files: [
+          path.src_web_accessible_resources + 'js/app/AccountRecovery.js',
+          path.src_web_accessible_resources + 'js/app/App.js',
+          path.src_web_accessible_resources + 'js/app/Download.js',
+          path.src_web_accessible_resources + 'js/app/Login.js',
+          path.src_web_accessible_resources + 'js/app/QuickAccess.js',
+          path.src_web_accessible_resources + 'js/app/Recover.js',
+          path.src_web_accessible_resources + 'js/app/Setup.js',
+          path.src_web_accessible_resources + 'js/app/Setup.js'
+        ],
+        tasks: ['shell:build_web_accessible_resources_app'],
+        options: { spawn: false }
+      },
+      web_accessible_resources_browser_integration: {
+        files: [
+          path.src_web_accessible_resources + 'js/app/InFormCallToAction.js',
+          path.src_web_accessible_resources + 'js/app/InFormMenu.js'
+        ],
+        tasks: ['shell:build_web_accessible_resources_browser_integration'],
+        options: { spawn: false }
+      },
+      manifest_firefox: {
+        files: [path.src_firefox + 'manifest.json'],
+        tasks: ['copy:manifest_firefox'],
+        options: { spawn: false }
+      },
+      manifest_chrome: {
+        files: [path.src_chrome + 'manifest.json'],
+        tasks: ['copy:manifest_chrome'],
+        options: { spawn: false }
+      },
+      manifest_chrome_mv3: {
+        files: [path.src_chrome_mv3 + 'manifest.json'],
+        tasks: ['copy:manifest_chrome_mv3'],
         options: { spawn: false }
       }
     }

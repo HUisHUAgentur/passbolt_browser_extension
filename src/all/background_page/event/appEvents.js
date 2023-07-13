@@ -10,30 +10,40 @@
  * @license       https://opensource.org/licenses/AGPL-3.0 AGPL License
  * @link          https://www.passbolt.com Passbolt(tm)
  */
-const Worker = require('../model/worker');
-const {User} = require("../model/user");
-const {GetOrganizationPolicyController} = require("../controller/accountRecovery/getOrganizationPolicyController");
-const {AccountRecoverySaveOrganizationPolicyController} = require("../controller/accountRecovery/accountRecoverySaveOrganizationPolicyController");
-const {AccountRecoveryValidatePublicKeyController} = require("../controller/accountRecovery/accountRecoveryValidatePublicKeyController");
-const {AccountRecoveryGenerateOrganizationKeyController} = require("../controller/accountRecovery/accountRecoveryGenerateOrganizationKeyController");
-const fileController = require("../controller/fileController");
-const {AccountRecoveryValidateOrganizationPrivateKeyController} = require("../controller/accountRecovery/accountRecoveryValidateOrganizationPrivateKeyController");
-const {AccountRecoveryGetUserRequestsController} = require("../controller/accountRecovery/accountRecoveryGetUserRequestsController");
-const {AccountRecoveryGetRequestController} = require("../controller/accountRecovery/accountRecoveryGetRequestController");
-const {AccountRecoverySaveUserSettingsController} = require("../controller/accountRecovery/accountRecoverySaveUserSettingController");
-const {ReviewRequestController} = require("../controller/accountRecovery/reviewRequestController");
-const {HasUserPostponedUserSettingInvitationController} = require("../controller/accountRecovery/hasUserPostponedUserSettingInvitationController");
-const {PostponeUserSettingInvitationController} = require("../controller/accountRecovery/postponeUserSettingInvitationController");
+import GetOrganizationPolicyController from "../controller/accountRecovery/getOrganizationPolicyController";
+import User from "../model/user";
+import AccountRecoverySaveOrganizationPolicyController from "../controller/accountRecovery/accountRecoverySaveOrganizationPolicyController";
+import AccountRecoveryValidatePublicKeyController from "../controller/accountRecovery/accountRecoveryValidatePublicKeyController";
+import AccountRecoveryValidateOrganizationPrivateKeyController from "../controller/accountRecovery/accountRecoveryValidateOrganizationPrivateKeyController";
+import AccountRecoveryGetUserRequestsController from "../controller/accountRecovery/accountRecoveryGetUserRequestsController";
+import AccountRecoveryGetRequestController from "../controller/accountRecovery/accountRecoveryGetRequestController";
+import ReviewRequestController from "../controller/accountRecovery/reviewRequestController";
+import AccountRecoveryGenerateOrganizationKeyController from "../controller/accountRecovery/accountRecoveryGenerateOrganizationKeyController";
+import AccountRecoverySaveUserSettingsController from "../controller/accountRecovery/accountRecoverySaveUserSettingController";
+import HasUserPostponedUserSettingInvitationController from "../controller/accountRecovery/hasUserPostponedUserSettingInvitationController";
+import PostponeUserSettingInvitationController from "../controller/accountRecovery/postponeUserSettingInvitationController";
+import FileService from "../service/file/fileService";
+import WorkerService from "../service/worker/workerService";
+import TestSsoAuthenticationController from "../controller/sso/testSsoAuthenticationController";
+import GetCurrentSsoSettingsController from "../controller/sso/getCurrentSsoSettingsController";
+import SaveSsoSettingsAsDraftController from "../controller/sso/saveSsoSettingsAsDraftController";
+import ActivateSsoSettingsController from "../controller/sso/activateSsoSettingsController";
+import DeleteSsoSettingsController from "../controller/sso/deleteSsoSettingsController";
+import GenerateSsoKitController from "../controller/auth/generateSsoKitController";
+import AuthenticationEventController from "../controller/auth/authenticationEventController";
+import FindMeController from "../controller/rbac/findMeController";
 
 const listen = function(worker, account) {
+  const authenticationEventController = new AuthenticationEventController(worker);
+  authenticationEventController.startListen();
   /*
    * Whenever the (React) app changes his route
    * @listens passbolt.app.route-changed
    * @param path The relative navigated-to path
    */
-  worker.port.on('passbolt.app.route-changed', path => {
+  worker.port.on('passbolt.app.route-changed', async path => {
     if (/^\/[A-Za-z0-9\-\/]*$/.test(path)) {
-      const appBoostrapWorker = Worker.get('AppBootstrap', worker.tab.id);
+      const appBoostrapWorker = await WorkerService.get('AppBootstrap', worker.tab.id);
       appBoostrapWorker.port.emit('passbolt.app-bootstrap.change-route', path);
     }
   });
@@ -71,7 +81,7 @@ const listen = function(worker, account) {
   worker.port.on('passbolt.account-recovery.download-organization-generated-key', async(requestId, privateKey) => {
     try {
       const date = new Date().toISOString().slice(0, 10);
-      await fileController.saveFile(`organization-recovery-private-key-${date}.asc`, privateKey, "text/plain", worker.tab.id);
+      await FileService.saveFile(`organization-recovery-private-key-${date}.asc`, privateKey, "text/plain", worker.tab.id);
       worker.port.emit(requestId, 'SUCCESS');
     } catch (error) {
       console.error(error);
@@ -118,5 +128,53 @@ const listen = function(worker, account) {
     const controller = new PostponeUserSettingInvitationController(worker, requestId);
     await controller._exec();
   });
+
+  worker.port.on('passbolt.sso.get-current', async requestId => {
+    const apiClientOptions = await User.getInstance().getApiClientOptions();
+    const controller = new GetCurrentSsoSettingsController(worker, requestId, apiClientOptions);
+    await controller._exec();
+  });
+
+  worker.port.on('passbolt.sso.save-draft', async(requestId, draftSsoSettings) => {
+    const apiClientOptions = await User.getInstance().getApiClientOptions();
+    const controller = new SaveSsoSettingsAsDraftController(worker, requestId, apiClientOptions);
+    await controller._exec(draftSsoSettings);
+  });
+
+  worker.port.on('passbolt.sso.dry-run', async(requestId, draftId) => {
+    const apiClientOptions = await User.getInstance().getApiClientOptions();
+    const controller = new TestSsoAuthenticationController(worker, requestId, apiClientOptions, account);
+    await controller._exec(draftId);
+  });
+
+  worker.port.on('passbolt.sso.activate-settings', async(requestId, draftId, ssoToken) => {
+    const apiClientOptions = await User.getInstance().getApiClientOptions();
+    const controller = new ActivateSsoSettingsController(worker, requestId, apiClientOptions);
+    await controller._exec(draftId, ssoToken);
+  });
+
+  worker.port.on('passbolt.sso.delete-settings', async(requestId, settingsId) => {
+    const apiClientOptions = await User.getInstance().getApiClientOptions();
+    const controller = new DeleteSsoSettingsController(worker, requestId, apiClientOptions);
+    await controller._exec(settingsId);
+  });
+
+  worker.port.on('passbolt.sso.generate-sso-kit', async(requestId, provider) => {
+    const apiClientOptions = await User.getInstance().getApiClientOptions();
+    const controller = new GenerateSsoKitController(worker, requestId, apiClientOptions);
+    await controller._exec(provider);
+  });
+
+  /*
+   * ==================================================================================
+   *  Role based control action
+   * ==================================================================================
+   */
+
+  worker.port.on('passbolt.rbacs.find-me', async(requestId, name) => {
+    const apiClientOptions = await User.getInstance().getApiClientOptions();
+    const controller = new FindMeController(worker, requestId, apiClientOptions, account);
+    await controller._exec(name);
+  });
 };
-exports.listen = listen;
+export const AppEvents = {listen};

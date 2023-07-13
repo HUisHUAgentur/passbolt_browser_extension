@@ -11,18 +11,17 @@
  * @link          https://www.passbolt.com Passbolt(tm)
  * @since         2.13.0
  */
-const {i18n} = require('../../sdk/i18n');
-const passphraseController = require('../passphrase/passphraseController');
-const progressController = require('../progress/progressController');
-const {ResourceSecretsCollection} = require("../../model/entity/secret/resource/resourceSecretsCollection");
-
-const {Keyring} = require('../../model/keyring');
-const {ResourceEntity} = require('../../model/entity/resource/resourceEntity');
-const {ResourceModel} = require('../../model/resource/resourceModel');
-const {UserModel} = require('../../model/user/userModel');
-const {EncryptMessageService} = require('../../service/crypto/encryptMessageService');
-const {GetDecryptedUserPrivateKeyService} = require('../../service/account/getDecryptedUserPrivateKeyService');
-const {readKeyOrFail} = require('../../utils/openpgp/openpgpAssertions');
+import Keyring from "../../model/keyring";
+import EncryptMessageService from "../../service/crypto/encryptMessageService";
+import ResourceModel from "../../model/resource/resourceModel";
+import {PassphraseController as passphraseController} from "../passphrase/passphraseController";
+import GetDecryptedUserPrivateKeyService from "../../service/account/getDecryptedUserPrivateKeyService";
+import UserModel from "../../model/user/userModel";
+import ResourceEntity from "../../model/entity/resource/resourceEntity";
+import i18n from "../../sdk/i18n";
+import ResourceSecretsCollection from "../../model/entity/secret/resource/resourceSecretsCollection";
+import {OpenpgpAssertion} from "../../utils/openpgp/openpgpAssertions";
+import ProgressService from "../../service/progress/progressService";
 
 class ResourceUpdateController {
   /**
@@ -38,6 +37,7 @@ class ResourceUpdateController {
     this.resourceModel = new ResourceModel(clientOptions);
     this.userModel = new UserModel(clientOptions);
     this.keyring = new Keyring();
+    this.progressService = new ProgressService(this.worker, i18n.t("Updating password"));
   }
 
   /**
@@ -64,10 +64,10 @@ class ResourceUpdateController {
    * @returns {Promise<Object>} updated resource
    */
   async updateResourceMetaOnly(resourceEntity) {
-    await progressController.open(this.worker, i18n.t("Updating password"), 1);
+    this.progressService.start(1, i18n.t("Updating password"));
     const updatedResource = await this.resourceModel.update(resourceEntity);
-    await progressController.update(this.worker, 1, i18n.t("Done!"));
-    await progressController.close(this.worker);
+    await this.progressService.finishStep(i18n.t("Done!"), true);
+    await this.progressService.close();
     return updatedResource;
   }
 
@@ -84,13 +84,13 @@ class ResourceUpdateController {
 
     // Set the goals
     try {
-      await progressController.open(this.worker, i18n.t("Updating password"), 4);
+      this.progressService.start(4, i18n.t("Updating password"));
       const usersIds = await this.userModel.findAllIdsForResourceUpdate(resourceEntity.id);
       const goals = usersIds.length + 3; // encrypt * users + keyring sync + save + done
-      await progressController.updateGoals(this.worker, goals);
+      this.progressService.updateGoals(goals);
 
       // Sync keyring
-      await progressController.update(this.worker, 1, i18n.t("Synchronizing keyring"));
+      await this.progressService.finishStep(i18n.t("Synchronizing keyring"), true);
       await this.keyring.sync();
 
       // Encrypt
@@ -98,13 +98,13 @@ class ResourceUpdateController {
       resourceEntity.secrets = await this.encryptSecrets(plaintext, usersIds, privateKey);
 
       // Post data & wrap up
-      await progressController.update(this.worker, goals - 1, i18n.t("Saving resource"));
+      await this.progressService.finishStep(i18n.t("Saving resource"), true);
       const updatedResource = await this.resourceModel.update(resourceEntity);
-      await progressController.update(this.worker, goals, i18n.t("Done!"));
-      await progressController.close(this.worker);
+      await this.progressService.finishStep(i18n.t("Done!"), true);
+      await this.progressService.close();
       return updatedResource;
     } catch (error) {
-      await progressController.close(this.worker);
+      await this.progressService.close();
       throw error;
     }
   }
@@ -138,14 +138,14 @@ class ResourceUpdateController {
       if (Object.prototype.hasOwnProperty.call(usersIds, i)) {
         const userId =  usersIds[i];
         const userPublicArmoredKey = this.keyring.findPublic(userId).armoredKey;
-        const userPublicKey = await readKeyOrFail(userPublicArmoredKey);
+        const userPublicKey = await OpenpgpAssertion.readKeyOrFail(userPublicArmoredKey);
         const data = await EncryptMessageService.encrypt(plaintextDto, userPublicKey, [privateKey]);
         secrets.push({user_id: userId, data: data});
-        await progressController.update(this.worker, i + 2, i18n.t("Encrypting"));
+        await this.progressService.finishStep(i18n.t("Encrypting"), true);
       }
     }
     return new ResourceSecretsCollection(secrets);
   }
 }
 
-exports.ResourceUpdateController = ResourceUpdateController;
+export default ResourceUpdateController;

@@ -11,19 +11,27 @@
  * @link          https://www.passbolt.com Passbolt(tm)
  * @since         3.6.0
  */
+import UserService from "../api/user/userService";
+import ApiClientOptions from "../api/apiClient/apiClientOptions";
 
-const {ApiClientOptions} = require("../api/apiClient/apiClientOptions");
-const {UserService} = require("../api/user/userService");
-
-class BuildAccountApiClientOptionsService {
+class BuildApiClientOptionsService {
   /**
-   * Build api client options based on an account.
+   * Build Api client options based on an account.
    * @param {AbstractAccountEntity} account The account to build the api client options based on
    * @returns {Promise<ApiClientOptions>}
    */
-  static async build(account) {
+  static async buildFromAccount(account) {
+    return this.buildFromDomain(account.domain);
+  }
+
+  /**
+   * Build Api client options based on a domain.
+   * @param {string} domain The domain to build the api client options based on.
+   * @returns {Promise<ApiClientOptions>}
+   */
+  static async buildFromDomain(domain) {
     const apiClientOptions = (new ApiClientOptions())
-      .setBaseUrl(account.domain);
+      .setBaseUrl(domain);
 
     const userService = new UserService(apiClientOptions);
     apiClientOptions.setCsrfToken(await userService.findCsrfToken());
@@ -32,4 +40,4 @@ class BuildAccountApiClientOptionsService {
   }
 }
 
-exports.BuildAccountApiClientOptionsService = BuildAccountApiClientOptionsService;
+export default BuildApiClientOptionsService;

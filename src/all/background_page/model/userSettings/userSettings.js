@@ -11,7 +11,8 @@
  * @link          https://www.passbolt.com Passbolt(tm)
  * @since         2.0.0
  */
-const Config = require('../config');
+import {Config} from "../config";
+import Validator from "validator";
 
 /**
  * The class that deals with users settings
@@ -126,7 +127,7 @@ class UserSettings {
    * @returns {void}
    */
   validateTheme(theme) {
-    const whitelist = ['default', 'midgar'];
+    const whitelist = ['default', 'midgar', 'solarized_light', 'solarized_dark'];
     if (whitelist.indexOf(theme) === -1) {
       throw new Error('The theme is not valid.');
     }
@@ -410,4 +411,4 @@ class UserSettings {
     return true;
   }
 }
-exports.UserSettings = UserSettings;
+export default UserSettings;

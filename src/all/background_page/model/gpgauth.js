@@ -11,28 +11,25 @@
  * @link          https://www.passbolt.com Passbolt(tm)
  * @since         2.9.0
  */
-const Uuid = require('../utils/uuid');
-const {ApiClientOptions} = require("../service/api/apiClient/apiClientOptions");
-
-const {AuthService} = require('../service/auth');
-const {User} = require('./user');
-const {Keyring} = require('./keyring');
-const {GpgAuthToken} = require('./gpgAuthToken');
-const {GpgAuthHeader} = require('./gpgAuthHeader');
-const {MfaAuthenticationRequiredError} = require('../error/mfaAuthenticationRequiredError');
-const {Request} = require('./request');
-const {OrganizationSettingsModel} = require('./organizationSettings/organizationSettingsModel');
-const {AuthStatusLocalStorage} = require('../service/local_storage/authStatusLocalStorage');
-const {EncryptMessageService} = require('../service/crypto/encryptMessageService');
-const {DecryptMessageService} = require('../service/crypto/decryptMessageService');
-const {GetGpgKeyInfoService} = require('../service/crypto/getGpgKeyInfoService');
-const {CompareGpgKeyService} = require('../service/crypto/compareGpgKeyService');
-const {readKeyOrFail, readMessageOrFail} = require('../utils/openpgp/openpgpAssertions');
+import {OpenpgpAssertion} from "../utils/openpgp/openpgpAssertions";
+import Keyring from "./keyring";
+import EncryptMessageService from "../service/crypto/encryptMessageService";
+import DecryptMessageService from "../service/crypto/decryptMessageService";
+import CompareGpgKeyService from "../service/crypto/compareGpgKeyService";
+import User from "./user";
+import AuthStatusLocalStorage from "../service/local_storage/authStatusLocalStorage";
+import {Uuid} from "../utils/uuid";
+import GpgAuthToken from "./gpgAuthToken";
+import MfaAuthenticationRequiredError from "../error/mfaAuthenticationRequiredError";
+import GpgAuthHeader from "./gpgAuthHeader";
+import GetGpgKeyInfoService from "../service/crypto/getGpgKeyInfoService";
+import AuthService from "../service/auth";
+import Request from "./request";
+import urldecode from 'locutus/php/url/urldecode';
+import stripslashes from 'locutus/php/strings/stripslashes';
 
 const URL_VERIFY = '/auth/verify.json?api-version=v2';
 const URL_LOGIN = '/auth/login.json?api-version=v2';
-const CHECK_IS_AUTHENTICATED_INTERVAL_PERIOD = 60000;
-const MAX_IS_AUTHENTICATED_INTERVAL_PERIOD = 2147483647;
 
 /**
  * GPGAuth authentication
@@ -45,8 +42,6 @@ class GpgAuth {
   constructor(keyring) {
     this.keyring = keyring ? keyring : new Keyring();
 
-    // Check the authentication status interval.
-    this.checkIsAuthenticatedTimeout = null;
     // Latest stored auth user status.
     this.authStatus = null;
   }
@@ -80,7 +75,7 @@ class GpgAuth {
     let encrypted, originalToken;
     try {
       originalToken = new GpgAuthToken();
-      const serverKey = await readKeyOrFail(serverArmoredKey);
+      const serverKey = await OpenpgpAssertion.readKeyOrFail(serverArmoredKey);
       encrypted = await EncryptMessageService.encrypt(originalToken.token, serverKey);
     } catch (error) {
       throw new Error(`Unable to encrypt the verify token. ${error.message}`);
@@ -125,9 +120,9 @@ class GpgAuth {
    */
   async serverKeyChanged() {
     const remoteServerArmoredKey = (await this.getServerKey()).keydata;
-    const remoteServerKey = await readKeyOrFail(remoteServerArmoredKey);
+    const remoteServerKey = await OpenpgpAssertion.readKeyOrFail(remoteServerArmoredKey);
     const serverLocalArmoredKey = this.getServerKeyFromKeyring().armoredKey;
-    const serverLocalKey = await readKeyOrFail(serverLocalArmoredKey);
+    const serverLocalKey = await OpenpgpAssertion.readKeyOrFail(serverLocalArmoredKey);
     return !await CompareGpgKeyService.areKeysTheSame(remoteServerKey, serverLocalKey);
   }
 
@@ -213,8 +208,8 @@ class GpgAuth {
 
     // Try to decrypt the User Auth Token
     const encryptedUserAuthToken = stripslashes(urldecode(auth.headers['x-gpgauth-user-auth-token']));
-    const decryptionKey = await readKeyOrFail(privateKey.armoredKey);
-    const encryptedMessage = await readMessageOrFail(encryptedUserAuthToken);
+    const decryptionKey = await OpenpgpAssertion.readKeyOrFail(privateKey.armoredKey);
+    const encryptedMessage = await OpenpgpAssertion.readMessageOrFail(encryptedUserAuthToken);
     const userAuthToken = await DecryptMessageService.decrypt(encryptedMessage, decryptionKey);
 
     // Validate the User Auth Token
@@ -349,79 +344,6 @@ class GpgAuth {
     await AuthStatusLocalStorage.set(isAuthenticated, isMfaRequired);
     return this.authStatus;
   }
-
-  /**
-   * Start an invertval to check if the user is authenticated.
-   * - In the case the user is logged out, trigger a passbolt.auth.after-logout event.
-   *
-   * @return {void}
-   */
-  async startCheckAuthStatusLoop() {
-    const timeoutPeriod = await this.getCheckAuthStatusTimeoutPeriod();
-
-    if (this.checkAuthStatusTimeout) {
-      clearTimeout(this.checkAuthStatusTimeout);
-    }
-
-    this.checkAuthStatusTimeout = setTimeout(async() => {
-      if (!await this.isAuthenticated()) {
-        window.dispatchEvent(new Event('passbolt.auth.after-logout'));
-      } else {
-        this.startCheckAuthStatusLoop();
-      }
-    }, timeoutPeriod);
-  }
-
-  /**
-   * Get the interval period the is authenticated check should be performed.
-   *
-   * The interval varies regarding the version of the API.
-   * - With API >= v2.11.0 the check can be performed every CHECK_IS_AUTHENTICATED_INTERVAL_PERIOD seconds.
-   *   The entry point introduced with v2.11.0 (/auth/is-authenticated) does not extend the user session.
-   * - With API < v2.11.0 the check cannot be performed every CHECK_IS_AUTHENTICATED_INTERVAL_PERIOD seconds.
-   *   The entry point /auth/checksession is extending the session, and therefor the check should be done
-   *   as per the session timeout.
-   *
-   * @return {int}
-   */
-  async getCheckAuthStatusTimeoutPeriod() {
-    let timeoutPeriod = CHECK_IS_AUTHENTICATED_INTERVAL_PERIOD;
-
-    /*
-     * The entry point available before v2.11.0 extends the session expiry period.
-     * Define the check interval based on the server session timeout.
-     */
-    if (AuthService.useLegacyIsAuthenticatedEntryPoint === true) {
-      const domain = User.getInstance().settings.getDomain();
-      const apiClientOptions = (new ApiClientOptions()).setBaseUrl(domain);
-      const organizationSettingsModel = new OrganizationSettingsModel(apiClientOptions);
-      const settings = await organizationSettingsModel.getOrFind();
-      // By default a default php session expires after 24 min.
-      let sessionTimeout = 24;
-      /*
-       * Check if the session timeout is provided in the settings.
-       * If not provided it means the user is not logged in or the MFA is required.
-       */
-      if (settings && settings.app && settings.app.session_timeout) {
-        sessionTimeout = settings.app.session_timeout;
-      }
-      /*
-       * Convert the timeout in millisecond and add 1 second to ensure the session is well expired
-       * when the request is made.
-       */
-      timeoutPeriod = ((sessionTimeout * 60) + 1) * 1000;
-
-      // Fix https://github.com/passbolt/passbolt_browser_extension/issues/84
-      if (timeoutPeriod > MAX_IS_AUTHENTICATED_INTERVAL_PERIOD) {
-        timeoutPeriod = MAX_IS_AUTHENTICATED_INTERVAL_PERIOD;
-      }
-      if (timeoutPeriod < CHECK_IS_AUTHENTICATED_INTERVAL_PERIOD) {
-        timeoutPeriod = CHECK_IS_AUTHENTICATED_INTERVAL_PERIOD;
-      }
-    }
-
-    return timeoutPeriod;
-  }
 }
 // Exports the Authentication model object.
-exports.GpgAuth = GpgAuth;
+export default GpgAuth;

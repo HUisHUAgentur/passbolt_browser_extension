@@ -10,8 +10,8 @@
  * @license       https://opensource.org/licenses/AGPL-3.0 AGPL License
  * @link          https://www.passbolt.com Passbolt(tm)
  */
-import {Csv1PasswordRowComposer} from "./csv1passwordRowComposer";
-import {ExternalResourceEntity} from "../../../entity/resource/external/externalResourceEntity";
+import Csv1PasswordRowComposer from "./csv1passwordRowComposer";
+import ExternalResourceEntity from "../../../entity/resource/external/externalResourceEntity";
 
 describe("Csv1PasswordComposer", () => {
   it("can compose 1password csv row", () => {
@@ -28,7 +28,7 @@ describe("Csv1PasswordComposer", () => {
     expect(csvRow).toBeInstanceOf(Object);
     expect(csvRow.Title).toEqual(externalResourceEntity.name);
     expect(csvRow.Username).toEqual(externalResourceEntity.username);
-    expect(csvRow.URL).toEqual(externalResourceEntity.uri);
+    expect(csvRow.Url).toEqual(externalResourceEntity.uri);
     expect(csvRow.Password).toEqual(externalResourceEntity.secretClear);
     expect(csvRow.Notes).toEqual(externalResourceEntity.description);
     expect(csvRow.Type).toEqual(externalResourceEntity.folderParentPath);

@@ -10,9 +10,12 @@
  * @license       https://opensource.org/licenses/AGPL-3.0 AGPL License
  * @link          https://www.passbolt.com Passbolt(tm)
  */
-const {UserEntity} = require("../entity/user/userEntity");
-const {UserLocalStorage} = require("../../service/local_storage/userLocalStorage");
-const {MultiFactorAuthenticationService} = require("../../service/api/multiFactorAuthentication/multiFactorAuthenticationService");
+import UserLocalStorage from "../../service/local_storage/userLocalStorage";
+import MultiFactorAuthenticationService from "../../service/api/multiFactorAuthentication/multiFactorAuthenticationService";
+import UserEntity from "../entity/user/userEntity";
+import MultiFactorAuthenticationPolicyService from '../../service/api/multiFactorAuthentication/multiFactorAuthenticationPolicyService';
+import MfaPolicyEntity from '../entity/mfa/mfaPolicyEntity';
+import MfaCombinedEnabledProvidersEntity from '../entity/mfa/mfaCombinedEnabledProvidersEntity';
 
 class MultiFactorAuthenticationModel {
   /**
@@ -23,6 +26,7 @@ class MultiFactorAuthenticationModel {
    */
   constructor(apiClientOptions) {
     this.multiFactorAuthenticationService = new MultiFactorAuthenticationService(apiClientOptions);
+    this.multiFactorAuthenticationPolicyService = new MultiFactorAuthenticationPolicyService(apiClientOptions);
   }
 
   /**
@@ -41,6 +45,28 @@ class MultiFactorAuthenticationModel {
       await UserLocalStorage.updateUser(userEntity);
     }
   }
+
+  /**
+   * Return the current MFA policy defined by the organization
+   *
+   * @returns {Promise<MfaPolicyEntity>}
+   * @public
+   */
+  async getPolicy() {
+    const policy = await this.multiFactorAuthenticationPolicyService.find();
+    return new MfaPolicyEntity(policy);
+  }
+
+  /**
+   * Return the mfa settings for an organization and user
+   *
+   * @returns {Promise<MfaCombinedEnabledProvidersEntity>}
+   * @public
+   */
+  async getMfaSettings() {
+    const setting = await this.multiFactorAuthenticationService.getSettings();
+    return new MfaCombinedEnabledProvidersEntity(setting);
+  }
 }
 
-exports.MultiFactorAuthenticationModel = MultiFactorAuthenticationModel;
+export default MultiFactorAuthenticationModel;

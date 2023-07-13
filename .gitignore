@@ -23,6 +23,7 @@ __snapshots__
 /build
 /bootstrap.js
 *.pem
+/dist
 
 # Config
 lib/config/config.json
@@ -44,3 +45,4 @@ gi
 # CI                 #
 ######################
 junit.xml
+*.vim

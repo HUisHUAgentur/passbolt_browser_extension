@@ -15,12 +15,10 @@
 import {enableFetchMocks} from "jest-fetch-mock";
 import {mockApiResponse} from "../../../../../test/mocks/mockApiResponse";
 import {defaultApiClientOptions} from "../../service/api/apiClient/apiClientOptions.test.data";
-import {ContinueAccountRecoveryController} from "./continueAccountRecoveryController";
-import {AccountAccountRecoveryEntity} from "../../model/entity/account/accountAccountRecoveryEntity";
+import ContinueAccountRecoveryController from "./continueAccountRecoveryController";
+import AccountAccountRecoveryEntity from "../../model/entity/account/accountAccountRecoveryEntity";
 import {defaultAccountAccountRecoveryDto} from "../../model/entity/account/accountAccountRecoveryEntity.test.data";
-import Worker from "../../model/worker";
-
-jest.mock("../../model/worker");
+import WorkerService from "../../service/worker/workerService";
 
 beforeEach(() => {
   enableFetchMocks();
@@ -51,7 +49,7 @@ describe("ContinueAccountRecoveryController", () => {
       fetch.doMockIf(url, () => Promise.reject(new Error("Unexpected API account recovery error")));
       // Mock Worker to assert error handler.
       const mockedBootstrapAccountRecoveryWorkerPortEmit = jest.fn();
-      Worker.get = jest.fn(() => ({
+      WorkerService.get = jest.fn(() => ({
         port: {
           emit: mockedBootstrapAccountRecoveryWorkerPortEmit
         }

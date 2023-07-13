@@ -12,10 +12,10 @@
  * @since         3.6.0
  */
 
-const {AbstractAccountEntity} = require("./abstractAccountEntity");
-const {EntitySchema} = require('../abstract/entitySchema');
-const {AuthenticationTokenEntity} = require("../authenticationToken/authenticationTokenEntity");
-const {AccountRecoveryRequestEntity} = require("../accountRecovery/accountRecoveryRequestEntity");
+import AccountRecoveryRequestEntity from "../accountRecovery/accountRecoveryRequestEntity";
+import AbstractAccountEntity from "./abstractAccountEntity";
+import AuthenticationTokenEntity from "../authenticationToken/authenticationTokenEntity";
+import EntitySchema from "passbolt-styleguide/src/shared/models/entity/abstract/entitySchema";
 
 const ENTITY_NAME = "AccountAccountRecovery";
 const TYPE_ACCOUNT_ACCOUNT_RECOVERY = "account-account-recovery";
@@ -25,16 +25,23 @@ class AccountAccountRecoveryEntity extends AbstractAccountEntity {
    * Constructor
    *
    * @param {Object} accountAccountRecoveryDto account account recovery DTO
-   * @throws {EntityValidationError} if the dto cannot be converted into an entity
+   * @param {Object} options.
+   * - {boolean} validateUsername Validate the username. Default true.
+   * @throws EntityValidationError if the dto cannot be converted into an entity
    */
-  constructor(accountAccountRecoveryDto) {
+  constructor(accountAccountRecoveryDto, options = {}) {
     AccountAccountRecoveryEntity.marshal(accountAccountRecoveryDto);
+
+    // Should the username be validated.
+    const isUsernameValidated = options?.validateUsername !== false;
 
     super(EntitySchema.validate(
       AccountAccountRecoveryEntity.ENTITY_NAME,
       accountAccountRecoveryDto,
-      AccountAccountRecoveryEntity.getSchema()
+      AccountAccountRecoveryEntity.getSchema(isUsernameValidated)
     ));
+
+    this.isUsernameValidated = isUsernameValidated;
 
     // Associations
     if (this._props.account_recovery_request) {
@@ -59,12 +66,14 @@ class AccountAccountRecoveryEntity extends AbstractAccountEntity {
 
   /**
    * Get entity schema
+   * @param {boolean} validateUsername Should validate the username. Default true.
    * @returns {Object} schema
    */
-  static getSchema() {
+  static getSchema(validateUsername = true) {
     const abstractAccountEntitySchema = AbstractAccountEntity.getSchema();
     const authenticationTokenSchema = AuthenticationTokenEntity.getSchema();
-    return {
+
+    const schema = {
       "type": "object",
       "required": [
         "type",
@@ -87,6 +96,18 @@ class AccountAccountRecoveryEntity extends AbstractAccountEntity {
         "account_recovery_request": AccountRecoveryRequestEntity.getSchema(),
       }
     };
+
+    /*
+     * Do not validate the username. It is used on the applications bootstrap when an account is retrieved from the
+     * storage, but the application settings cannot be retrieved yet as they require an account to work with.
+     */
+    if (!validateUsername) {
+      schema.properties.username = {
+        "type": "string"
+      };
+    }
+
+    return schema;
   }
 
   /*
@@ -248,4 +269,4 @@ class AccountAccountRecoveryEntity extends AbstractAccountEntity {
   }
 }
 
-exports.AccountAccountRecoveryEntity = AccountAccountRecoveryEntity;
+export default AccountAccountRecoveryEntity;

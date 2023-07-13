@@ -11,14 +11,12 @@
  * @link          https://www.passbolt.com Passbolt(tm)
  * @since         2.0.0
  */
-import {UserSettings} from "./userSettings";
+import UserSettings from "./userSettings";
 
 jest.mock('../config', () => ({
   getItem: item => item,
   read: item => item
 }));
-
-window.storage = {getItem: jest.fn()};
 
 describe("User settings validation security token", () => {
   const userSettings = new UserSettings();

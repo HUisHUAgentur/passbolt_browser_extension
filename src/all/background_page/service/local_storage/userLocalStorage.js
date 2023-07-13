@@ -11,12 +11,12 @@
  * @link          https://www.passbolt.com Passbolt(tm)
  * @since         2.13.0
  */
-const {Log} = require('../../model/log');
-const {Lock} = require('../../utils/lock');
+import browser from "../../sdk/polyfill/browserPolyfill";
+import Log from "../../model/log";
+import UserEntity from "../../model/entity/user/userEntity";
+import UsersCollection from "../../model/entity/user/usersCollection";
+import Lock from "../../utils/lock";
 const lock = new Lock();
-
-const {UserEntity} = require('../../model/entity/user/userEntity');
-const {UsersCollection} = require("../../model/entity/user/usersCollection");
 
 const USER_LOCAL_STORAGE_KEY = 'users';
 
@@ -186,19 +186,6 @@ class UserLocalStorage {
       throw new TypeError('UserLocalStorage::set expects UserEntity avatar to be set');
     }
   }
-
-  /**
-   * Init user local storage
-   */
-  static init() {
-    // Flush the local storage when this library is loaded
-    this.flush();
-
-    // Flush the local storage when the passbolt user session is terminated
-    window.addEventListener("passbolt.auth.after-logout", () => {
-      this.flush();
-    });
-  }
 }
 
-exports.UserLocalStorage = UserLocalStorage;
+export default UserLocalStorage;

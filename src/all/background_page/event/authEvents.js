@@ -6,17 +6,25 @@
  * @copyright (c) 2019 Passbolt SA
  * @licence GNU Affero General Public License http://www.gnu.org/licenses/agpl-3.0.en.html
  */
-const {AuthVerifyServerKeyController} = require('../controller/auth/authVerifyServerKeyController');
-const {AuthCheckStatusController} = require('../controller/auth/authCheckStatusController');
-const {AuthIsAuthenticatedController} = require('../controller/auth/authIsAuthenticatedController');
-const {AuthIsMfaRequiredController} = require('../controller/auth/authIsMfaRequiredController');
-const {AuthModel} = require("../model/auth/authModel");
-const {User} = require('../model/user');
-const {Keyring} = require('../model/keyring');
-const Config = require('../model/config');
-const {UserAlreadyLoggedInError} = require("../error/userAlreadyLoggedInError");
-const {CheckPassphraseController} = require('../controller/crypto/checkPassphraseController');
-const {RequestHelpCredentialsLostController} = require("../controller/auth/requestHelpCredentialsLostController");
+import Keyring from "../model/keyring";
+import User from "../model/user";
+import AuthModel from "../model/auth/authModel";
+import AuthVerifyServerKeyController from "../controller/auth/authVerifyServerKeyController";
+import AuthCheckStatusController from "../controller/auth/authCheckStatusController";
+import AuthIsAuthenticatedController from "../controller/auth/authIsAuthenticatedController";
+import AuthIsMfaRequiredController from "../controller/auth/authIsMfaRequiredController";
+import CheckPassphraseController from "../controller/crypto/checkPassphraseController";
+import RequestHelpCredentialsLostController from "../controller/auth/requestHelpCredentialsLostController";
+import {Config} from "../model/config";
+import AuthLoginController from "../controller/auth/authLoginController";
+import GetLocalSsoProviderConfiguredController from "../controller/sso/getLocalSsoProviderConfiguredController";
+import SsoAuthenticationController from "../controller/sso/ssoAuthenticationController";
+import SsoSettingsEntity from "../model/entity/sso/ssoSettingsEntity";
+import DeleteLocalSsoKitController from "../controller/sso/deleteLocalSsoKitController";
+import UpdateLocalSsoProviderController from "../controller/sso/updateLocalSsoProviderController";
+import HasSsoLoginErrorController from "../controller/sso/hasSsoLoginErrorController";
+import GetQualifiedSsoLoginErrorController from "../controller/sso/getQualifiedSsoLoginErrorController";
+import AuthLogoutController from "../controller/auth/authLogoutController";
 
 const listen = function(worker, account) {
   /*
@@ -58,37 +66,10 @@ const listen = function(worker, account) {
    * @listens passbolt.auth.logout
    * @param requestId {uuid} The request identifier
    */
-  worker.port.on('passbolt.auth.logout', async requestId => {
+  worker.port.on('passbolt.auth.logout', async(requestId, withRedirection) => {
     const apiClientOptions = await User.getInstance().getApiClientOptions();
-    const auth = new AuthModel(apiClientOptions);
-
-    try {
-      await auth.logout();
-      worker.port.emit(requestId, 'SUCCESS');
-    } catch (error) {
-      console.error(error);
-      worker.port.emit(requestId, 'ERROR');
-    }
-  });
-
-  /*
-   * Navigate to logout
-   *
-   * @listens passbolt.auth.navigate-to-logout
-   * @param requestId {uuid} The request identifier
-   */
-  worker.port.on('passbolt.auth.navigate-to-logout', async() => {
-    const user = User.getInstance();
-    const apiClientOptions = await user.getApiClientOptions();
-    const auth = new AuthModel(apiClientOptions);
-    const url = `${user.settings.getDomain()}/auth/logout`;
-
-    try {
-      await chrome.tabs.update(worker.tab.id, {url: url});
-      await auth.postLogout();
-    } catch (error) {
-      console.error(error);
-    }
+    const controller = new AuthLogoutController(worker, requestId, apiClientOptions);
+    await controller._exec(withRedirection);
   });
 
   /*
@@ -170,19 +151,9 @@ const listen = function(worker, account) {
    *   (integer) duration in seconds to specify a specific duration
    */
   worker.port.on('passbolt.auth.login', async(requestId, passphrase, remember) => {
-    try {
-      const clientOptions = await User.getInstance().getApiClientOptions();
-      const authModel = new AuthModel(clientOptions);
-      await authModel.login(passphrase, remember);
-      worker.port.emit(requestId, 'SUCCESS');
-    } catch (error) {
-      if (error instanceof UserAlreadyLoggedInError) {
-        worker.port.emit(requestId, 'SUCCESS');
-      } else {
-        console.error(error);
-        worker.port.emit(requestId, 'ERROR', error);
-      }
-    }
+    const clientOptions = await User.getInstance().getApiClientOptions(); //@todo remove and use a glocal apiClientOptions;
+    const controller = new AuthLoginController(worker, requestId, clientOptions, account);
+    await controller._exec(passphrase, remember);
   });
 
   /*
@@ -212,6 +183,91 @@ const listen = function(worker, account) {
     const controller = new RequestHelpCredentialsLostController(worker, requestId, apiClientOptions, account);
     await controller._exec();
   });
+
+  /**
+   * Performs a sign-in via SSO with the selected provider
+   * @param {uuid} requestId the request identifier
+   * @param {boolean} isInQuickaccessMode is the current call made from the quickaccess
+   * @param {string} provider the SSO provider identifier
+   */
+  async function signInWithSso(requestId, isInQuickaccessMode, provider) {
+    const user = await User.getInstance();
+    //sometimes, the CSRF token is not set properly before the login and blocks the user
+    await user.retrieveAndStoreCsrfToken();
+    const apiClientOptions = await user.getApiClientOptions();
+    const controller = new SsoAuthenticationController(worker, requestId, apiClientOptions, account);
+    await controller._exec(provider, isInQuickaccessMode);
+  }
+
+  /**
+   * Attempt to sign in with Azure as a third party sign in provider
+   * @listens passbolt.sso.sign-in-with-azure
+   * @param {uuid} requestId The request identifier
+   */
+  worker.port.on('passbolt.sso.sign-in-with-azure', async(requestId, isInQuickaccessMode) => {
+    await signInWithSso(requestId, isInQuickaccessMode, SsoSettingsEntity.AZURE);
+  });
+
+  /**
+   * Attempt to sign in with Google as a third party sign in provider
+   * @listens passbolt.sso.sign-in-with-google
+   * @param {uuid} requestId The request identifier
+   */
+  worker.port.on('passbolt.sso.sign-in-with-google', async(requestId, isInQuickaccessMode) => {
+    await signInWithSso(requestId, isInQuickaccessMode, SsoSettingsEntity.GOOGLE);
+  });
+
+  /**
+   * Returns the sso provider id registered client-side.
+   * @listens passbolt.sso.get-local-configured-provider
+   * @param {uuid} requestId The request identifier
+   */
+  worker.port.on('passbolt.sso.get-local-configured-provider', async requestId => {
+    const controller = new GetLocalSsoProviderConfiguredController(worker, requestId);
+    await controller._exec();
+  });
+
+  /**
+   * Deletes the SSO kit stored locally
+   * @listens passbolt.sso.delete-local-kit
+   * @param {uuid} requestId The request identifier
+   */
+  worker.port.on('passbolt.sso.delete-local-kit', async requestId => {
+    const controller = new DeleteLocalSsoKitController(worker, requestId);
+    await controller._exec();
+  });
+
+  /**
+   * Updates the SSO kit stored locally
+   * @listens passbolt.sso.update-provider-local-kit
+   * @param {uuid} requestId The request identifier
+   * @param {string} ssoProviderId The new provider to set
+   */
+  worker.port.on('passbolt.sso.update-provider-local-kit', async(requestId, ssoProviderId) => {
+    const controller = new UpdateLocalSsoProviderController(worker, requestId);
+    await controller._exec(ssoProviderId);
+  });
+
+  /**
+   * Checks wether the current tab URL is an SSO login error URL
+   * @listens passbolt.sso.has-sso-login-error
+   * @param {uuid} requestId The request identifier
+   */
+  worker.port.on('passbolt.sso.has-sso-login-error', async requestId => {
+    const controller = new HasSsoLoginErrorController(worker, requestId);
+    await controller._exec();
+  });
+
+  /**
+   * Returns a qualified error based on the local SSO kit configuration and the API configuration
+   * @listens passbolt.sso.get-qualified-sso-login-error
+   * @param {uuid} requestId The request identifier
+   */
+  worker.port.on('passbolt.sso.get-qualified-sso-login-error', async requestId => {
+    const apiClientOptions = await User.getInstance().getApiClientOptions();
+    const controller = new GetQualifiedSsoLoginErrorController(worker, requestId, apiClientOptions);
+    await controller._exec();
+  });
 };
 
-exports.listen = listen;
+export const AuthEvents = {listen};

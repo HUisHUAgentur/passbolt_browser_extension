@@ -12,16 +12,15 @@
  * @since         3.6.0
  */
 
-import {DownloadRecoveryKitController} from "./downloadRecoverKitController";
+import DownloadRecoveryKitController from "./downloadRecoverKitController";
 import {
   startAccountSetupDto,
   withUserKeyAccountSetupDto
 } from "../../model/entity/account/accountSetupEntity.test.data";
-import {AccountSetupEntity} from "../../model/entity/account/accountSetupEntity";
+import AccountSetupEntity from "../../model/entity/account/accountSetupEntity";
+import FileService from "../../service/file/fileService";
 
-const FileController = require("../fileController");
-
-jest.mock("../../controller/fileController");
+jest.mock("../../service/file/fileService");
 
 describe("DownloadRecoveryKitController", () => {
   describe("DownloadRecoveryKitController::exec", () => {
@@ -35,7 +34,7 @@ describe("DownloadRecoveryKitController", () => {
     });
 
     it("Should trigger the recovery kit download.", async() => {
-      FileController.saveFile = jest.fn();
+      FileService.saveFile = jest.fn();
       const mockedWorker = {
         tab: {
           id: "id"
@@ -47,7 +46,7 @@ describe("DownloadRecoveryKitController", () => {
 
       expect.assertions(1);
       await controller.exec();
-      expect(FileController.saveFile).toHaveBeenCalledWith(
+      expect(FileService.saveFile).toHaveBeenCalledWith(
         "passbolt-recovery-kit.asc",
         account.userPrivateArmoredKey,
         "text/plain",

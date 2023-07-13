@@ -10,10 +10,10 @@
  * @license       https://opensource.org/licenses/AGPL-3.0 AGPL License
  * @link          https://www.passbolt.com Passbolt(tm)
  */
-const {AbstractService} = require('../abstract/abstractService');
-const {PassboltApiFetchError} = require('../../../error/passboltApiFetchError');
-const {PassboltBadResponseError} = require('../../../error/passboltBadResponseError');
-const {PassboltServiceUnavailableError} = require('../../../error/passboltServiceUnavailableError');
+import PassboltBadResponseError from "../../../error/passboltBadResponseError";
+import AbstractService from "../abstract/abstractService";
+import PassboltApiFetchError from "../../../error/passboltApiFetchError";
+import PassboltServiceUnavailableError from "../../../error/passboltServiceUnavailableError";
 
 const AUTH_SERVICE_RESOURCE_NAME = 'auth';
 
@@ -53,15 +53,33 @@ class AuthService extends AbstractService {
    */
   async logout() {
     const url = this.apiClient.buildUrl(`${this.apiClient.baseUrl}/logout`, {});
-    try {
-      // @deprecated with passbolt API > 4. Logout redirect automatically to login.json which generates an error.
-      await this.apiClient.fetchAndHandleResponse('GET', url, null, {redirect: "manual"});
-    } catch (error) {
-      if (error instanceof PassboltBadResponseError && error?.srcResponse?.type === "opaqueredirect") {
-        // @deprecated with passbolt API > 4. Logout redirect automatically to login.json which generates an error.
-      } else {
-        throw error;
+    const response = await this.apiClient.sendRequest("POST", url, null, {redirect: "manual"});
+    const isResponseOk = response.ok || response.status === 0; // status is 0 as there should be a redirection that is handled manually
+    if (!isResponseOk) {
+      if (response.status !== 404) {
+        throw new PassboltApiFetchError('An unexpected error happened during the logout process', {
+          code: response.status
+        });
       }
+
+      return this._logoutLegacy();
+    }
+  }
+
+  /**
+   * Logout (the legacy way that uses the deprecated 'GET' method).
+   * @return {Promise<void>}
+   * @deprecated the POST method should be used instead to avoid CSRF
+   * @private
+   */
+  async _logoutLegacy() {
+    const url = this.apiClient.buildUrl(`${this.apiClient.baseUrl}/logout`, {});
+    const response = await this.apiClient.sendRequest("GET", url, null, {redirect: "manual"});
+    const isResponseOk = response.ok || response.status === 0; // status is 0 as there should be a redirection that is handled manually
+    if (!isResponseOk) {
+      throw new PassboltApiFetchError('An unexpected error happened during the legacy logout process', {
+        code: response.status
+      });
     }
   }
 
@@ -135,4 +153,4 @@ class AuthService extends AbstractService {
   }
 }
 
-exports.AuthService = AuthService;
+export default AuthService;

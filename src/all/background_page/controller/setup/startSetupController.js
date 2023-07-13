@@ -11,11 +11,10 @@
  * @link          https://www.passbolt.com Passbolt(tm)
  * @since         3.6.0
  */
-
-const Worker = require("../../model/worker");
-const {AuthModel} = require("../../model/auth/authModel");
-const {SetupModel} = require("../../model/setup/setupModel");
-const {readKeyOrFail, assertPublicKey} = require('../../utils/openpgp/openpgpAssertions');
+import AuthModel from "../../model/auth/authModel";
+import SetupModel from "../../model/setup/setupModel";
+import {OpenpgpAssertion} from "../../utils/openpgp/openpgpAssertions";
+import WorkerService from "../../service/worker/workerService";
 
 class StartSetupController {
   /**
@@ -58,7 +57,7 @@ class StartSetupController {
       await this._findAndSetAccountSetupServerPublicKey();
       await this._findAndSetAccountSetupMeta();
     } catch (error) {
-      this._handleUnexpectedError(error);
+      await this._handleUnexpectedError(error);
     }
   }
 
@@ -69,8 +68,8 @@ class StartSetupController {
    */
   async _findAndSetAccountSetupServerPublicKey() {
     const serverKeyDto = await this.authModel.getServerKey();
-    const serverPublicKey = await readKeyOrFail(serverKeyDto.armored_key);
-    assertPublicKey(serverPublicKey);
+    const serverPublicKey = await OpenpgpAssertion.readKeyOrFail(serverKeyDto.armored_key);
+    OpenpgpAssertion.assertPublicKey(serverPublicKey);
 
     // associate the server public key to the account being set up.
     this.account.serverPublicArmoredKey = serverPublicKey.armor();
@@ -107,10 +106,10 @@ class StartSetupController {
    * @param {Error} error The error.
    * @private
    */
-  _handleUnexpectedError(error) {
-    Worker.get('SetupBootstrap', this.worker.tab.id).port.emit('passbolt.setup-bootstrap.remove-iframe');
+  async _handleUnexpectedError(error) {
+    (await WorkerService.get('SetupBootstrap', this.worker.tab.id)).port.emit('passbolt.setup-bootstrap.remove-iframe');
     throw error;
   }
 }
 
-exports.StartSetupController = StartSetupController;
+export default StartSetupController;

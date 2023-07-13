@@ -11,8 +11,9 @@
  * @link          https://www.passbolt.com Passbolt(tm)
  * @since         3.6.0
  */
-const {Entity} = require('../../abstract/entity');
-const {EntitySchema} = require('../../abstract/entitySchema');
+import Entity from "passbolt-styleguide/src/shared/models/entity/abstract/entity";
+import EntitySchema from "passbolt-styleguide/src/shared/models/entity/abstract/entitySchema";
+import AppEmailValidatorService from "../../../../service/validator/appEmailValidatorService";
 
 const ENTITY_NAME = 'externalGpgKey';
 
@@ -67,7 +68,7 @@ class ExternalGpgKeyEntity extends Entity {
             "properties": {
               "email": {
                 "type": "string",
-                "format": "email"
+                "custom": AppEmailValidatorService.validate
               },
               "name": {
                 "type": "string"
@@ -308,4 +309,4 @@ class ExternalGpgKeyEntity extends Entity {
   }
 }
 
-exports.ExternalGpgKeyEntity = ExternalGpgKeyEntity;
+export default ExternalGpgKeyEntity;
